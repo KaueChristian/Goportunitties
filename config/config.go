@@ -7,29 +7,31 @@ import (
 )
 
 var (
-	db 		*gorm.DB
-	logger	*Logger
+	db *gorm.DB
+	logger *Logger
 )
 
-func Init() error{
-	var err error 
+// Init initializes the configuration settings.
+func Init() error {
+	var err error
 
-	//Initialize SQlite
+	// Initialize SQLite database
 	db, err = InitializeSQlite()
-	
-	if err != nil{
-		return fmt.Errorf("error initializing SQlite: %v", err)
+	if err != nil {
+		return fmt.Errorf("error initializing SQLite: %v", err)
 	}
 
 	return nil
 }
 
-func GetSQlite() *gorm.DB{
+// GetSQlite returns the SQLite database instance.
+func GetSQlite() *gorm.DB {
 	return db
-} 
+}
 
+// GetLogger returns a logger instance with the provided prefix.
 func GetLogger(p string) *Logger {
-	//Initialize Logger
+	// Initialize logger
 	logger := NewLogger(p)
 	return logger
 }

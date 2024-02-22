@@ -28,5 +28,5 @@ func DeleteOpeningHandler(ctx *gin.Context) {
 			fmt.Sprintf("Error deleting opening with id %v", id))
 		return
 	}
-	sendSucess(ctx,"delete-opening", opening)
+	sendSuccess(ctx,"delete-opening", opening)
 }
