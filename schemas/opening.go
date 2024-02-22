@@ -22,9 +22,9 @@ type OpeningResponse struct {
 	ID       	int64 		`json:"id"`
 	CreatedAt	time.Time	`json:"createdAt"`
 	UpdatedAt	time.Time	`json:"updatedAt"`
-	DeletedAt	time.Time	`json:"deletedAt",omitempty`
+	DeletedAt	time.Time	`json:"deletedAt,omitempty"`
 	Role     	string		`json:"role"`
-	Company  	string		`json:"company`
+	Company  	string		`json:"company"`
 	Location 	string		`json:"location"`
 	Remote   	bool		`json:"remote"`
 	Link     	string		`json:"link"`

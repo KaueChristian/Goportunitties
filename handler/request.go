@@ -7,7 +7,6 @@ func errparamIsRequired(name, typ string) error{
 }
 
 //Create opening
-
 type crateOpeningRequest struct {
 	Role 		string 		`json:"role"`
 	Company  	string		`json:"company"`
@@ -16,6 +15,7 @@ type crateOpeningRequest struct {
 	Link     	string		`json:"link"`
 	Salary   	int64		`json:"salary"`
 }
+
 
 func (r *crateOpeningRequest) Validate() error {
 	if r.Role == "" && r.Company == "" && r.Location == "" && r.Remote == nil && r.Salary <= 0  {
