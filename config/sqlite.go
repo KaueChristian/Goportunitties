@@ -13,7 +13,7 @@ func InitializeSQlite() (*gorm.DB, error) {
 	// Get logger instance for SQLite
 	logger := GetLogger("Sqlite")
 	// Path to the SQLite database file
-	dbPath := "./db/main.db"
+	dbPath := "./database/main.db"
 
 	// Check if the database file exists
 	_, err := os.Stat(dbPath)
@@ -21,7 +21,7 @@ func InitializeSQlite() (*gorm.DB, error) {
 		// If the database file doesn't exist, create it
 		logger.Info("Database file not found. Creating...")
 		// Create database file and directory
-		err = os.MkdirAll("./db", os.ModePerm)
+		err = os.MkdirAll("./database", os.ModePerm)
 		if err != nil {
 			return nil, err
 		}
