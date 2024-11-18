@@ -1,0 +1,1 @@
+Esse projeto foi desenvolvido e postado pelo canal no youtube: https://www.youtube.com/@Arthur404dev e no intuito de aprendizado e conhecimento das possiblidades da linguagem, este README é um completo crédito a didática excelente do arthur, um ótimo profissional que me ensinou muito sobre lidar com golang em vários pontos, além de me apresentar conceitos profissionais
