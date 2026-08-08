@@ -1,6 +1,4 @@
-go.sum
-
-#binaries 
+#binaries
 *.exe
 *.dll
 *.so
@@ -15,3 +13,8 @@ go.sum
 Db folder
 
 db/
+database/*.db
+.env
+
+# runtime logs
+*.log

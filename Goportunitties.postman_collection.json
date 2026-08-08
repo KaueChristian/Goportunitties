@@ -1,0 +1,128 @@
+{
+	"info": {
+		"name": "Goportunitties",
+		"description": "Coleção para testar a API de vagas (Opening) do projeto Goportunitties.",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+	},
+	"variable": [
+		{
+			"key": "baseUrl",
+			"value": "http://localhost:8080/api/v1"
+		},
+		{
+			"key": "openingId",
+			"value": "1"
+		}
+	],
+	"item": [
+		{
+			"name": "List Openings",
+			"request": {
+				"method": "GET",
+				"url": {
+					"raw": "{{baseUrl}}/openings",
+					"host": ["{{baseUrl}}"],
+					"path": ["openings"]
+				}
+			}
+		},
+		{
+			"name": "Create Opening",
+			"request": {
+				"method": "POST",
+				"header": [
+					{ "key": "Content-Type", "value": "application/json" }
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n  \"role\": \"Backend Developer\",\n  \"company\": \"Acme Corp\",\n  \"location\": \"Remote\",\n  \"remote\": true,\n  \"link\": \"https://example.com/jobs/123\",\n  \"salary\": 10000\n}"
+				},
+				"url": {
+					"raw": "{{baseUrl}}/opening",
+					"host": ["{{baseUrl}}"],
+					"path": ["opening"]
+				}
+			}
+		},
+		{
+			"name": "Create Opening - Invalid (400)",
+			"request": {
+				"method": "POST",
+				"header": [
+					{ "key": "Content-Type", "value": "application/json" }
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{}"
+				},
+				"url": {
+					"raw": "{{baseUrl}}/opening",
+					"host": ["{{baseUrl}}"],
+					"path": ["opening"]
+				}
+			}
+		},
+		{
+			"name": "Show Opening",
+			"request": {
+				"method": "GET",
+				"url": {
+					"raw": "{{baseUrl}}/opening/{{openingId}}",
+					"host": ["{{baseUrl}}"],
+					"path": ["opening", "{{openingId}}"]
+				}
+			}
+		},
+		{
+			"name": "Show Opening - Not Found (404)",
+			"request": {
+				"method": "GET",
+				"url": {
+					"raw": "{{baseUrl}}/opening/9999",
+					"host": ["{{baseUrl}}"],
+					"path": ["opening", "9999"]
+				}
+			}
+		},
+		{
+			"name": "Update Opening",
+			"request": {
+				"method": "PUT",
+				"header": [
+					{ "key": "Content-Type", "value": "application/json" }
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n  \"salary\": 12000,\n  \"remote\": false\n}"
+				},
+				"url": {
+					"raw": "{{baseUrl}}/opening/{{openingId}}",
+					"host": ["{{baseUrl}}"],
+					"path": ["opening", "{{openingId}}"]
+				}
+			}
+		},
+		{
+			"name": "Delete Opening",
+			"request": {
+				"method": "DELETE",
+				"url": {
+					"raw": "{{baseUrl}}/opening/{{openingId}}",
+					"host": ["{{baseUrl}}"],
+					"path": ["opening", "{{openingId}}"]
+				}
+			}
+		},
+		{
+			"name": "Delete Opening - Not Found (404)",
+			"request": {
+				"method": "DELETE",
+				"url": {
+					"raw": "{{baseUrl}}/opening/9999",
+					"host": ["{{baseUrl}}"],
+					"path": ["opening", "9999"]
+				}
+			}
+		}
+	]
+}

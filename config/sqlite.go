@@ -2,18 +2,17 @@ package config
 
 import (
 	"os"
+	"path/filepath"
 
 	"github.com/KaueChristian/Goportunitties/schemas"
-	"gorm.io/driver/sqlite"
+	"github.com/glebarez/sqlite"
 	"gorm.io/gorm"
 )
 
-// InitializeSQlite initializes the SQLite database.
-func InitializeSQlite() (*gorm.DB, error) {
+// InitializeSQlite initializes the SQLite database at the given path.
+func InitializeSQlite(dbPath string) (*gorm.DB, error) {
 	// Get logger instance for SQLite
 	logger := GetLogger("Sqlite")
-	// Path to the SQLite database file
-	dbPath := "./database/main.db"
 
 	// Check if the database file exists
 	_, err := os.Stat(dbPath)
@@ -21,7 +20,7 @@ func InitializeSQlite() (*gorm.DB, error) {
 		// If the database file doesn't exist, create it
 		logger.Info("Database file not found. Creating...")
 		// Create database file and directory
-		err = os.MkdirAll("./database", os.ModePerm)
+		err = os.MkdirAll(filepath.Dir(dbPath), os.ModePerm)
 		if err != nil {
 			return nil, err
 		}
