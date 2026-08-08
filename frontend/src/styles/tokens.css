@@ -1,0 +1,207 @@
+/*
+ * Design tokens.
+ *
+ * Every color in the app comes from here. Component styles reference roles
+ * (--color-accent, --text-secondary), never raw hex, so light/dark swap in one
+ * place. Palette steps are taken from a contrast-validated blue ramp.
+ *
+ * The shapes, type scale and rhythm follow a job-board layout language: a
+ * display face for headings, a 16px reading base, generously rounded cards and
+ * a soft ambient shadow instead of hairline borders.
+ */
+
+:root {
+  color-scheme: light;
+
+  /* ---- Brand ramp (blue) ---- */
+  --blue-100: #cde2fb;
+  --blue-200: #9ec5f4;
+  --blue-300: #6da7ec;
+  --blue-400: #3987e5;
+  --blue-450: #2a78d6;
+  --blue-500: #256abf;
+  --blue-600: #184f95;
+  --blue-700: #0d366b;
+
+  /* ---- Surfaces & ink ---- */
+  --surface-page: #f6f6f4;
+  --surface-1: #fcfcfb;
+  --surface-2: #f0efec;
+  --surface-inset: #f6f6f3;
+
+  --text-primary: #0b0b0b;
+  --text-secondary: #52514e;
+  --text-muted: #898781;
+  --text-on-accent: #ffffff;
+
+  --border: rgba(11, 11, 11, 0.1);
+  --border-strong: rgba(11, 11, 11, 0.18);
+
+  /* ---- Roles ---- */
+  --color-accent: var(--blue-450);
+  --color-accent-hover: var(--blue-500);
+  --color-accent-soft: var(--blue-100);
+  --color-accent-ink: var(--blue-700);
+
+  --color-remote: #1baf7a;
+  --color-remote-soft: #dcf3e9;
+  --color-remote-ink: #0a5d40;
+
+  --color-onsite: #7c5cd6;
+  --color-onsite-soft: #e8e2fa;
+  --color-onsite-ink: #3b2a76;
+
+  --color-good: #0ca30c;
+  --color-danger: #d03b3b;
+  --color-danger-hover: #b32f2f;
+  --color-danger-soft: #fbe6e6;
+
+  /*
+   * Full-bleed section bands. `--surface-hero` is the accent tinted down far
+   * enough to sit behind body text; `--surface-band` is the neutral alternate
+   * used between white sections.
+   */
+  --surface-hero: color-mix(in srgb, var(--color-accent-soft) 32%, var(--surface-1));
+  --surface-band: var(--surface-2);
+
+  /* ---- Elevation ---- */
+  --shadow-sm: 0 2px 10px rgba(13, 54, 107, 0.05);
+  --shadow-md: 0 0 40px 5px rgba(13, 54, 107, 0.08);
+  --shadow-lg: 0 20px 50px rgba(13, 54, 107, 0.18);
+  --shadow-accent: 0 8px 20px rgba(42, 120, 214, 0.25);
+
+  /* ---- Geometry ---- */
+  --radius-sm: 8px;
+  --radius-md: 10px;
+  --radius-lg: 15px;
+  --radius-xl: 20px;
+  --radius-pill: 999px;
+
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 20px;
+  --space-6: 24px;
+  --space-8: 32px;
+  --space-10: 40px;
+  --space-12: 48px;
+  --space-16: 64px;
+  --space-20: 80px;
+
+  /* ---- Type ---- */
+  --font-sans: 'Roboto', system-ui, -apple-system, 'Segoe UI', sans-serif;
+  --font-display: 'Plus Jakarta Sans', 'Roboto', system-ui, -apple-system, sans-serif;
+
+  --text-xs: 0.8125rem;
+  --text-sm: 0.875rem;
+  --text-base: 1rem;
+  --text-md: 1.0625rem;
+  --text-lg: 1.25rem;
+  --text-xl: 1.5rem;
+  --text-2xl: 2rem;
+  --text-3xl: 2.1875rem;
+  --text-hero: 2.8125rem;
+
+  /* ---- Motion ---- */
+  --ease-out: cubic-bezier(0.22, 1, 0.36, 1);
+  --ease-in-out: cubic-bezier(0.65, 0, 0.35, 1);
+  --duration-fast: 120ms;
+  --duration-base: 200ms;
+  --duration-slow: 320ms;
+
+  /* ---- Layout ---- */
+  --header-height: 76px;
+  --content-max: 1240px;
+}
+
+/* Dark mode: its own steps chosen for the dark surface, not an inverted flip. */
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme='light']) {
+    color-scheme: dark;
+
+    --surface-page: #0d0d0d;
+    --surface-1: #1a1a19;
+    --surface-2: #232322;
+    --surface-inset: #141413;
+
+    --text-primary: #ffffff;
+    --text-secondary: #c3c2b7;
+    --text-muted: #898781;
+
+    --border: rgba(255, 255, 255, 0.1);
+    --border-strong: rgba(255, 255, 255, 0.2);
+
+    --color-accent: var(--blue-400);
+    --color-accent-hover: #5598e7;
+    --color-accent-soft: rgba(57, 135, 229, 0.16);
+    --color-accent-ink: #9ec5f4;
+
+    --color-remote: #199e70;
+    --color-remote-soft: rgba(25, 158, 112, 0.18);
+    --color-remote-ink: #6fd6ae;
+
+    --color-onsite: #9085e9;
+    --color-onsite-soft: rgba(144, 133, 233, 0.18);
+    --color-onsite-ink: #b9b2f2;
+
+    --color-danger: #e66767;
+    --color-danger-hover: #ef8080;
+    --color-danger-soft: rgba(230, 103, 103, 0.16);
+
+    /*
+     * Mixed from the opaque ramp step rather than --color-accent-soft, which is
+     * translucent here: color-mix would carry that alpha into the band and let
+     * the page show through a surface that is meant to be solid.
+     */
+    --surface-hero: color-mix(in srgb, var(--blue-400) 9%, var(--surface-page));
+    --surface-band: var(--surface-inset);
+
+    --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.4);
+    --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.45);
+    --shadow-lg: 0 16px 40px rgba(0, 0, 0, 0.6);
+    --shadow-accent: 0 4px 14px rgba(57, 135, 229, 0.32);
+  }
+}
+
+/* The explicit toggle must win over the OS setting in both directions. */
+:root[data-theme='dark'] {
+  color-scheme: dark;
+
+  --surface-page: #0d0d0d;
+  --surface-1: #1a1a19;
+  --surface-2: #232322;
+  --surface-inset: #141413;
+
+  --text-primary: #ffffff;
+  --text-secondary: #c3c2b7;
+  --text-muted: #898781;
+
+  --border: rgba(255, 255, 255, 0.1);
+  --border-strong: rgba(255, 255, 255, 0.2);
+
+  --color-accent: var(--blue-400);
+  --color-accent-hover: #5598e7;
+  --color-accent-soft: rgba(57, 135, 229, 0.16);
+  --color-accent-ink: #9ec5f4;
+
+  --color-remote: #199e70;
+  --color-remote-soft: rgba(25, 158, 112, 0.18);
+  --color-remote-ink: #6fd6ae;
+
+  --color-onsite: #9085e9;
+  --color-onsite-soft: rgba(144, 133, 233, 0.18);
+  --color-onsite-ink: #b9b2f2;
+
+  --color-danger: #e66767;
+  --color-danger-hover: #ef8080;
+  --color-danger-soft: rgba(230, 103, 103, 0.16);
+
+  --surface-hero: color-mix(in srgb, var(--blue-400) 9%, var(--surface-page));
+  --surface-band: var(--surface-inset);
+
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.4);
+  --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.45);
+  --shadow-lg: 0 16px 40px rgba(0, 0, 0, 0.6);
+  --shadow-accent: 0 4px 14px rgba(57, 135, 229, 0.32);
+}

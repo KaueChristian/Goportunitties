@@ -1,0 +1,79 @@
+/*
+ * Shared keyframes.
+ *
+ * CSS Modules scopes both @keyframes names and the `animation` references that
+ * point at them. A module referencing a keyframe defined in a plain global
+ * stylesheet gets its reference renamed to something that matches no rule, and
+ * the animation silently never runs. So every *.module.css that animates
+ * imports this file — the definition then lands in the same scope as the
+ * reference and the two names match.
+ */
+
+@keyframes fade-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes rise-in {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@keyframes pop-in {
+  from {
+    opacity: 0;
+    transform: translateY(8px) scale(0.97);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@keyframes slide-in-right {
+  from {
+    opacity: 0;
+    transform: translateX(24px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@keyframes shimmer {
+  from {
+    background-position: 200% 0;
+  }
+  to {
+    background-position: -200% 0;
+  }
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* Idle drift for decorative elements. The reduced-motion rule in global.css
+ * caps the iteration count, so this stops for anyone who asked it to. */
+@keyframes float-y {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-12px);
+  }
+}

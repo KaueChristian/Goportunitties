@@ -1,0 +1,121 @@
+.footer {
+  margin-top: auto;
+  padding-top: var(--space-16);
+  background-color: var(--surface-band);
+}
+
+.inner {
+  display: grid;
+  grid-template-columns: minmax(0, 2fr) repeat(2, minmax(0, 1fr));
+  gap: var(--space-10);
+  max-width: var(--content-max);
+  margin: 0 auto;
+  padding: 0 var(--space-6) var(--space-12);
+}
+
+.about {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+
+.brand {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-3);
+  align-self: flex-start;
+  color: var(--text-primary);
+}
+
+.brand:hover {
+  text-decoration: none;
+}
+
+.mark {
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  background-color: var(--color-accent);
+  color: var(--text-on-accent);
+  border-radius: var(--radius-lg);
+}
+
+.wordmark {
+  font-family: var(--font-display);
+  font-size: var(--text-lg);
+  font-weight: 400;
+  letter-spacing: -0.02em;
+}
+
+.wordmark strong {
+  font-weight: 800;
+}
+
+.tagline {
+  max-width: 46ch;
+  color: var(--text-secondary);
+  font-size: var(--text-sm);
+}
+
+.column {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+.columnTitle {
+  font-size: var(--text-base);
+}
+
+.column a {
+  color: var(--text-secondary);
+  font-size: var(--text-sm);
+  transition: color var(--duration-fast) var(--ease-out);
+}
+
+.column a:hover {
+  color: var(--color-accent);
+  text-decoration: none;
+}
+
+.bottom {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-4);
+  max-width: var(--content-max);
+  margin: 0 auto;
+  padding: var(--space-5) var(--space-6);
+  border-top: 1px solid var(--border);
+  color: var(--text-muted);
+  font-size: var(--text-sm);
+}
+
+@media (max-width: 820px) {
+  .inner {
+    grid-template-columns: 1fr 1fr;
+    gap: var(--space-8);
+  }
+
+  .about {
+    grid-column: 1 / -1;
+  }
+}
+
+@media (max-width: 640px) {
+  .footer {
+    padding-top: var(--space-12);
+  }
+
+  .inner {
+    padding: 0 var(--space-4) var(--space-8);
+  }
+
+  .bottom {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: var(--space-1);
+    padding: var(--space-4);
+  }
+}

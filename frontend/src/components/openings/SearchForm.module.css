@@ -1,0 +1,113 @@
+/*
+ * One elevated white bar holding four controls: the fields are separated by
+ * hairlines rather than each carrying its own border, which is what keeps the
+ * whole thing reading as a single object.
+ */
+.form {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-3);
+  background-color: var(--surface-1);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-md);
+}
+
+.field {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  flex: 1 1 0;
+  min-width: 0;
+  height: 48px;
+  padding: 0 var(--space-3);
+  color: var(--text-muted);
+  border-radius: var(--radius-md);
+  transition: background-color var(--duration-fast) var(--ease-out);
+}
+
+.field:focus-within {
+  background-color: var(--surface-inset);
+}
+
+.field svg {
+  flex-shrink: 0;
+}
+
+.field + .field {
+  border-left: 1px solid var(--border);
+  border-radius: 0 var(--radius-md) var(--radius-md) 0;
+}
+
+.field input,
+.field select {
+  flex: 1;
+  min-width: 0;
+  height: 100%;
+  background: none;
+  border: none;
+  color: var(--text-primary);
+  font-size: var(--text-base);
+}
+
+.field input:focus-visible,
+.field select:focus-visible {
+  outline: none;
+}
+
+.field input::placeholder {
+  color: var(--text-muted);
+}
+
+/* The native arrow is replaced by the chevron after the select. */
+.selectField select {
+  appearance: none;
+  cursor: pointer;
+}
+
+.submit {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-2);
+  flex-shrink: 0;
+  height: 48px;
+  padding: 0 var(--space-6);
+  border-radius: var(--radius-md);
+  background-color: var(--color-accent);
+  color: var(--text-on-accent);
+  font-weight: 500;
+  box-shadow: var(--shadow-accent);
+  transition:
+    background-color var(--duration-fast) var(--ease-out),
+    transform var(--duration-fast) var(--ease-out);
+}
+
+.submit:hover {
+  background-color: var(--color-accent-hover);
+}
+
+.submit:active {
+  transform: translateY(1px);
+}
+
+@media (max-width: 860px) {
+  .form {
+    flex-wrap: wrap;
+  }
+
+  .field {
+    flex-basis: 100%;
+  }
+
+  .field + .field {
+    border-left: none;
+    border-top: 1px solid var(--border);
+    border-radius: var(--radius-md);
+  }
+
+  .submit {
+    width: 100%;
+  }
+}

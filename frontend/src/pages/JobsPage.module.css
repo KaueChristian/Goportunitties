@@ -1,0 +1,132 @@
+@import '../styles/keyframes.css';
+
+/* ---- Page banner ---- */
+
+.banner {
+  background-color: var(--surface-hero);
+}
+
+.bannerInner {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  max-width: var(--content-max);
+  margin: 0 auto;
+  padding: var(--space-12) var(--space-6);
+  animation: rise-in var(--duration-slow) var(--ease-out);
+}
+
+.title {
+  font-size: var(--text-3xl);
+  letter-spacing: -0.02em;
+}
+
+.lead {
+  max-width: 60ch;
+  margin-bottom: var(--space-3);
+  font-size: var(--text-md);
+}
+
+/* ---- Results layout ---- */
+
+.layout {
+  display: grid;
+  grid-template-columns: 290px minmax(0, 1fr);
+  align-items: start;
+  gap: var(--space-6);
+  max-width: var(--content-max);
+  margin: 0 auto;
+  padding: var(--space-10) var(--space-6) var(--space-16);
+}
+
+.errorArea {
+  grid-column: 1 / -1;
+}
+
+.results {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-5);
+  min-width: 0;
+}
+
+/*
+ * `container` lets the card switch between its stacked and row forms based on
+ * the width it actually gets, not the viewport's — the results column narrows
+ * by 360px whenever the detail panel opens.
+ *
+ * Every track is minmax(0, …): the default `auto` minimum is the item's
+ * min-content width, which a row-form card would push past the column.
+ */
+.cards {
+  display: grid;
+  gap: var(--space-5);
+  container: cards / inline-size;
+}
+
+.grid {
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+}
+
+.list {
+  grid-template-columns: minmax(0, 1fr);
+}
+
+.detail {
+  position: sticky;
+  top: calc(var(--header-height) + var(--space-5));
+}
+
+/*
+ * The detail only earns a third column once there is room for all three; below
+ * that it drops to a sheet and the results keep the full width.
+ */
+@media (min-width: 1200px) {
+  .withDetail {
+    grid-template-columns: 290px minmax(0, 1fr) 360px;
+  }
+
+  .withDetail .grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+@media (max-width: 1199px) {
+  .detail {
+    position: fixed;
+    inset: auto 0 0 0;
+    z-index: 90;
+    max-height: 85vh;
+    overflow-y: auto;
+    padding: var(--space-3);
+    background-color: var(--surface-page);
+    border-top: 1px solid var(--border);
+    box-shadow: var(--shadow-lg);
+    animation: rise-in var(--duration-slow) var(--ease-out);
+  }
+}
+
+@media (max-width: 980px) {
+  .layout {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 640px) {
+  .bannerInner {
+    padding: var(--space-10) var(--space-4);
+  }
+
+  .title {
+    font-size: var(--text-2xl);
+  }
+
+  .layout {
+    gap: var(--space-5);
+    padding: var(--space-8) var(--space-4) var(--space-12);
+  }
+
+  .grid {
+    grid-template-columns: 1fr;
+  }
+}

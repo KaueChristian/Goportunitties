@@ -1,0 +1,175 @@
+.sidebar {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-8);
+  padding: var(--space-6);
+  background-color: var(--surface-1);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-sm);
+}
+
+.group {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+
+/* The rule under each group title is what separates the facets without boxes. */
+.groupTitle {
+  padding-bottom: var(--space-3);
+  border-bottom: 1px solid var(--border);
+  font-size: var(--text-md);
+}
+
+.options {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.scrollable {
+  max-height: 280px;
+  overflow-y: auto;
+  padding-right: var(--space-1);
+}
+
+.option {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-2);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  transition: background-color var(--duration-fast) var(--ease-out);
+}
+
+.option:hover {
+  background-color: var(--surface-inset);
+}
+
+/*
+ * The native radio stays in the accessibility tree and keeps keyboard behaviour;
+ * only its rendering is replaced by the box beside it.
+ */
+.input {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  opacity: 0;
+}
+
+.box {
+  display: grid;
+  place-items: center;
+  flex-shrink: 0;
+  width: 20px;
+  height: 20px;
+  border: 1.5px solid var(--border-strong);
+  border-radius: var(--radius-sm);
+  color: transparent;
+  transition:
+    background-color var(--duration-fast) var(--ease-out),
+    border-color var(--duration-fast) var(--ease-out),
+    color var(--duration-fast) var(--ease-out);
+}
+
+.input:checked + .box {
+  background-color: var(--color-accent);
+  border-color: var(--color-accent);
+  color: var(--text-on-accent);
+}
+
+.input:focus-visible + .box {
+  outline: 2px solid var(--color-accent);
+  outline-offset: 2px;
+}
+
+.optionLabel {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--text-secondary);
+  font-size: var(--text-sm);
+}
+
+.input:checked ~ .optionLabel {
+  color: var(--text-primary);
+  font-weight: 500;
+}
+
+.count {
+  flex-shrink: 0;
+  color: var(--text-muted);
+  font-size: var(--text-xs);
+}
+
+/* ---- Salary range ---- */
+
+.salary {
+  color: var(--color-accent);
+  font-size: var(--text-sm);
+  font-weight: 500;
+}
+
+.range {
+  width: 100%;
+  height: 6px;
+  margin: 0;
+  padding: 0;
+  appearance: none;
+  background-color: var(--surface-2);
+  border-radius: var(--radius-pill);
+  cursor: pointer;
+}
+
+.range::-webkit-slider-thumb {
+  appearance: none;
+  width: 18px;
+  height: 18px;
+  background-color: var(--color-accent);
+  border: 3px solid var(--surface-1);
+  border-radius: 50%;
+  box-shadow: var(--shadow-accent);
+}
+
+.range::-moz-range-thumb {
+  width: 18px;
+  height: 18px;
+  background-color: var(--color-accent);
+  border: 3px solid var(--surface-1);
+  border-radius: 50%;
+}
+
+.rangeScale {
+  display: flex;
+  justify-content: space-between;
+  color: var(--text-muted);
+  font-size: var(--text-xs);
+}
+
+/* ---- Clear ---- */
+
+.clear {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-2);
+  height: 44px;
+  border-radius: var(--radius-md);
+  background-color: var(--color-danger-soft);
+  color: var(--color-danger);
+  font-size: var(--text-sm);
+  font-weight: 500;
+  transition: background-color var(--duration-fast) var(--ease-out);
+}
+
+.clear:hover {
+  background-color: var(--color-danger);
+  color: #ffffff;
+}

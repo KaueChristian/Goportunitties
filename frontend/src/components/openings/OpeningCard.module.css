@@ -1,0 +1,308 @@
+@import '../../styles/keyframes.css';
+
+.card {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+  padding: var(--space-6);
+  background-color: var(--surface-1);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-sm);
+  /*
+   * `backwards` holds the keyframe's opacity:0 during animation-delay, so the
+   * stagger still works — but the card's own resting state stays visible. If the
+   * animation ever fails to run, the card shows normally instead of vanishing.
+   */
+  animation: rise-in var(--duration-slow) var(--ease-out) backwards;
+  transition:
+    border-color var(--duration-base) var(--ease-out),
+    box-shadow var(--duration-base) var(--ease-out),
+    transform var(--duration-base) var(--ease-out);
+}
+
+.card:hover {
+  transform: translateY(-4px);
+  border-color: transparent;
+  box-shadow: var(--shadow-md);
+}
+
+.selected {
+  border-color: var(--color-accent);
+  box-shadow: 0 0 0 1px var(--color-accent);
+}
+
+.hitArea {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  border-radius: var(--radius-lg);
+}
+
+/* ---- Top: logo, role, company ---- */
+
+.top {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-4);
+  min-width: 0;
+}
+
+.logo {
+  display: grid;
+  place-items: center;
+  flex-shrink: 0;
+  width: 60px;
+  height: 60px;
+  border-radius: var(--radius-lg);
+  color: #ffffff;
+  font-family: var(--font-display);
+  font-size: var(--text-lg);
+  font-weight: 700;
+  letter-spacing: 0.02em;
+}
+
+.headings {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+}
+
+/* Two lines is the point where a long role stops pushing the card taller. */
+.role {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+  overflow: hidden;
+  font-size: var(--text-md);
+  line-height: 1.3;
+}
+
+.company {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  min-width: 0;
+  color: var(--color-accent);
+  font-size: var(--text-sm);
+  font-weight: 500;
+}
+
+.company svg {
+  flex-shrink: 0;
+}
+
+.actions {
+  position: relative;
+  z-index: 2;
+  display: flex;
+  gap: var(--space-1);
+  flex-shrink: 0;
+  opacity: 0;
+  transform: translateX(4px);
+  transition:
+    opacity var(--duration-base) var(--ease-out),
+    transform var(--duration-base) var(--ease-out);
+}
+
+.card:hover .actions,
+.card:focus-within .actions {
+  opacity: 1;
+  transform: none;
+}
+
+.action {
+  display: grid;
+  place-items: center;
+  width: 35px;
+  height: 35px;
+  border-radius: var(--radius-pill);
+  background-color: var(--color-accent-soft);
+  color: var(--color-accent);
+  transition:
+    background-color var(--duration-fast) var(--ease-out),
+    color var(--duration-fast) var(--ease-out);
+}
+
+.action:hover {
+  background-color: var(--color-accent);
+  color: var(--text-on-accent);
+}
+
+.destructive {
+  background-color: var(--color-danger-soft);
+  color: var(--color-danger);
+}
+
+.destructive:hover {
+  background-color: var(--color-danger);
+  color: #ffffff;
+}
+
+/* ---- Info list ---- */
+
+.info {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2) var(--space-5);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  min-width: 0;
+}
+
+.info li {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  min-width: 0;
+  color: var(--text-secondary);
+  font-size: var(--text-sm);
+}
+
+.info svg {
+  flex-shrink: 0;
+}
+
+/* Scoped through .info to outrank the `.info li` color above without !important. */
+.info .remote {
+  color: var(--color-remote);
+  font-weight: 500;
+}
+
+.info .onsite {
+  color: var(--color-onsite);
+  font-weight: 500;
+}
+
+.location {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  display: inline-flex;
+}
+
+/* ---- Bottom: salary and apply ---- */
+
+.bottom {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  margin-top: auto;
+  padding-top: var(--space-4);
+  border-top: 1px solid var(--border);
+}
+
+.salary {
+  color: var(--color-accent);
+  font-family: var(--font-display);
+  font-size: var(--text-md);
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.salaryUnit {
+  margin-left: var(--space-1);
+  color: var(--text-muted);
+  font-family: var(--font-sans);
+  font-size: var(--text-sm);
+  font-weight: 400;
+}
+
+.apply {
+  position: relative;
+  z-index: 2;
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  flex-shrink: 0;
+  height: 40px;
+  padding: 0 var(--space-4);
+  border-radius: var(--radius-md);
+  background-color: var(--color-accent-soft);
+  color: var(--color-accent);
+  font-size: var(--text-sm);
+  font-weight: 500;
+  white-space: nowrap;
+  transition:
+    background-color var(--duration-fast) var(--ease-out),
+    color var(--duration-fast) var(--ease-out),
+    box-shadow var(--duration-base) var(--ease-out);
+}
+
+.apply:hover {
+  background-color: var(--color-accent);
+  color: var(--text-on-accent);
+  box-shadow: var(--shadow-accent);
+  text-decoration: none;
+}
+
+/* ---- List layout: the same parts, laid out across the row ---- */
+
+/*
+ * Keyed to the container the cards sit in, not the viewport: the row form needs
+ * real width, and the results column loses 360px of it when the detail opens.
+ * With no `cards` container in scope the query never matches and the card keeps
+ * its stacked form, which is the safe default.
+ */
+@container cards (min-width: 720px) {
+  .list {
+    flex-direction: row;
+    align-items: center;
+    gap: var(--space-6);
+  }
+
+  .list .top {
+    flex: 1 1 300px;
+    align-items: center;
+  }
+
+  .list .info {
+    flex: 0 1 260px;
+    flex-direction: column;
+    gap: var(--space-2);
+  }
+
+  .list .bottom {
+    flex: 0 0 auto;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: var(--space-2);
+    margin-top: 0;
+    padding-top: 0;
+    border-top: none;
+  }
+}
+
+/* Touch devices have no hover — keep the actions permanently visible there. */
+@media (hover: none) {
+  .actions {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@media (max-width: 480px) {
+  .card {
+    padding: var(--space-5);
+  }
+
+  .logo {
+    width: 52px;
+    height: 52px;
+  }
+
+  .bottom {
+    flex-wrap: wrap;
+  }
+
+  .apply {
+    flex: 1;
+    justify-content: center;
+  }
+}
