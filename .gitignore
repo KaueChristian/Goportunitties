@@ -1,20 +1,24 @@
-#binaries
+# binaries
 *.exe
 *.dll
 *.so
 *.dylib
+/goportunitties
 
-# test Binary
+# test binary
 *.test
 
-#coverage
+# coverage
 *.out
+coverage.html
 
-Db folder
-
-db/
-database/*.db
+# runtime state: the SQLite file and its write-ahead log
+/data/
 .env
 
 # runtime logs
 *.log
+
+# built frontend, embedded into the Go binary at build time
+internal/web/dist/*
+!internal/web/dist/.gitkeep

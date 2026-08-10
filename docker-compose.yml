@@ -1,0 +1,20 @@
+services:
+  api:
+    build:
+      context: .
+      args:
+        VERSION: ${VERSION:-dev}
+    ports:
+      - '8080:8080'
+    environment:
+      APP_ENV: production
+      # Same origin in production — the binary serves the SPA too — so no
+      # cross-origin request has to be allowed.
+      CORS_ORIGINS: ''
+    volumes:
+      # The SQLite file outlives the container.
+      - goportunitties-data:/data
+    restart: unless-stopped
+
+volumes:
+  goportunitties-data:

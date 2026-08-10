@@ -1,0 +1,14 @@
+# Normalize line endings: the repository stores LF, checkouts get whatever the
+# platform uses. Without this, committing from Windows and running CI on Linux
+# makes gofmt and the linters disagree about files nobody touched.
+* text=auto eol=lf
+
+# Binary assets must never be converted.
+*.png binary
+*.jpg binary
+*.ico binary
+*.db binary
+
+# Generated files: keep them out of diffs and language statistics.
+frontend/package-lock.json linguist-generated=true -diff
+go.sum linguist-generated=true -diff
