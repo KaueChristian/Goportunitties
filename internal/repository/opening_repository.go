@@ -45,6 +45,10 @@ type MonthCount struct {
 }
 
 // Aggregates is the whole-index summary behind the dashboard.
+//
+// The salary figures cover only the openings that state one: a posting saved
+// with salary 0 means "a combinar", and counting it as zero would drag the
+// numbers down without any real salary having changed.
 type Aggregates struct {
 	Total         int64
 	Remote        int64
@@ -61,6 +65,7 @@ type OpeningRepository interface {
 	CountByRemote(ctx context.Context, filter Filter) (remote, onsite int64, err error)
 	CountByLocation(ctx context.Context, filter Filter) ([]LocationCount, error)
 	MaxSalary(ctx context.Context) (int64, error)
+	MedianSalary(ctx context.Context) (int64, error)
 	Aggregates(ctx context.Context) (Aggregates, error)
 	MonthlyCounts(ctx context.Context, months int) ([]MonthCount, error)
 	Update(ctx context.Context, opening *model.Opening) error
@@ -162,6 +167,48 @@ func (r *gormOpeningRepository) MaxSalary(ctx context.Context) (int64, error) {
 	return max, nil
 }
 
+// MedianSalary returns the middle salary among the openings that state one.
+//
+// SQLite has no median aggregate, so the value is read positionally: count the
+// rows, then fetch the one (odd count) or two (even count) in the middle. That
+// keeps the work in SQL instead of pulling every salary into memory — which
+// matters once the index is filled by ingestion rather than by hand.
+func (r *gormOpeningRepository) MedianSalary(ctx context.Context) (int64, error) {
+	var stated int64
+	err := r.db.WithContext(ctx).
+		Model(&model.Opening{}).
+		Where("salary > 0").
+		Count(&stated).Error
+	if err != nil {
+		return 0, fmt.Errorf("counting stated salaries: %w", err)
+	}
+	if stated == 0 {
+		return 0, nil
+	}
+
+	middle := []int64{}
+	err = r.db.WithContext(ctx).
+		Model(&model.Opening{}).
+		Where("salary > 0").
+		Order("salary ASC").
+		Limit(int(2 - stated%2)).
+		Offset(int((stated - 1) / 2)).
+		Pluck("salary", &middle).Error
+	if err != nil {
+		return 0, fmt.Errorf("reading median salary: %w", err)
+	}
+	if len(middle) == 0 {
+		return 0, nil
+	}
+
+	// An even count has no single middle row: the median is the mean of the two.
+	var sum int64
+	for _, salary := range middle {
+		sum += salary
+	}
+	return sum / int64(len(middle)), nil
+}
+
 func (r *gormOpeningRepository) Aggregates(ctx context.Context) (Aggregates, error) {
 	row := struct {
 		Total         int64
@@ -173,10 +220,12 @@ func (r *gormOpeningRepository) Aggregates(ctx context.Context) (Aggregates, err
 
 	err := r.db.WithContext(ctx).
 		Model(&model.Opening{}).
+		// CASE returns NULL for an unstated salary, and AVG skips NULLs — that
+		// is what keeps "a combinar" out of the average.
 		Select(`COUNT(*) AS total,
 			COALESCE(SUM(CASE WHEN remote = 1 THEN 1 ELSE 0 END), 0) AS remote,
 			COUNT(DISTINCT company) AS companies,
-			CAST(COALESCE(AVG(salary), 0) AS INTEGER) AS average_salary,
+			CAST(COALESCE(AVG(CASE WHEN salary > 0 THEN salary END), 0) AS INTEGER) AS average_salary,
 			COALESCE(MAX(salary), 0) AS max_salary`).
 		Scan(&row).Error
 	if err != nil {

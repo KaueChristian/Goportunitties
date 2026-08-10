@@ -1,18 +1,15 @@
 import styles from './Footer.module.css'
 import { Icon } from '../ui/Icon'
 import { ROUTE_PATHS } from '../../router/useHashRoute'
-import { useBrandMark } from './brandMark'
 
 export function Footer() {
-  const { mark } = useBrandMark()
-
   return (
     <footer className={styles.footer}>
       <div className={styles.inner}>
         <div className={styles.about}>
           <a className={styles.brand} href={ROUTE_PATHS.home}>
             <span className={styles.mark}>
-              <Icon name={mark.icon} size={22} />
+              <Icon name="compass" size={22} />
             </span>
             <span className={styles.wordmark}>
               Go<strong>portunitties</strong>

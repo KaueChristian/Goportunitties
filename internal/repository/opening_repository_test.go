@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"path/filepath"
+	"strconv"
 	"testing"
 	"time"
 
@@ -270,6 +271,104 @@ func TestAggregates(t *testing.T) {
 	}
 	if aggregates != want {
 		t.Fatalf("aggregates = %+v, want %+v", aggregates, want)
+	}
+}
+
+// The salary figures describe the openings that state a salary. A posting saved
+// as "a combinar" is an absence, not a salary of zero.
+func TestSalaryFiguresIgnoreUnstatedSalaries(t *testing.T) {
+	repo, _ := newRepo(t)
+	ctx := context.Background()
+
+	openings := sample() // 15000, 9000, 21500
+	openings = append(openings, model.Opening{
+		Role: "Estágio", Company: "Acme", Location: "Remoto", Remote: true, Link: "https://acme.com/4", Salary: 0,
+	})
+	seed(t, repo, openings...)
+
+	aggregates, err := repo.Aggregates(ctx)
+	if err != nil {
+		t.Fatalf("Aggregates: %v", err)
+	}
+	if aggregates.Total != 4 {
+		t.Fatalf("total = %d, want 4 — the opening still counts", aggregates.Total)
+	}
+
+	wantAverage := int64((15000 + 9000 + 21500) / 3)
+	if aggregates.AverageSalary != wantAverage {
+		t.Fatalf("average = %d, want %d — a salary of 0 must not be averaged in",
+			aggregates.AverageSalary, wantAverage)
+	}
+
+	median, err := repo.MedianSalary(ctx)
+	if err != nil {
+		t.Fatalf("MedianSalary: %v", err)
+	}
+	if median != 15000 {
+		t.Fatalf("median = %d, want 15000", median)
+	}
+}
+
+func TestMedianSalary(t *testing.T) {
+	tests := []struct {
+		name     string
+		salaries []int64
+		want     int64
+	}{
+		{"empty index", nil, 0},
+		{"single opening", []int64{15000}, 15000},
+		{"odd count takes the middle", []int64{9000, 15000, 21500}, 15000},
+		{"even count averages the two middle", []int64{9000, 12000, 16000, 21500}, 14000},
+		// The point of the median: one outlier moves it far less than the mean.
+		{"an outlier barely moves it", []int64{9000, 12000, 15000, 16000, 500000}, 15000},
+		{"every salary unstated", []int64{0, 0}, 0},
+		{"order of insertion is irrelevant", []int64{21500, 9000, 15000}, 15000},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			repo, _ := newRepo(t)
+
+			openings := make([]model.Opening, 0, len(tt.salaries))
+			for i, salary := range tt.salaries {
+				openings = append(openings, model.Opening{
+					Role:     "Vaga",
+					Company:  "Empresa",
+					Location: "Remoto",
+					Remote:   true,
+					Link:     "https://empresa.com/" + strconv.Itoa(i),
+					Salary:   salary,
+				})
+			}
+			seed(t, repo, openings...)
+
+			got, err := repo.MedianSalary(context.Background())
+			if err != nil {
+				t.Fatalf("MedianSalary: %v", err)
+			}
+			if got != tt.want {
+				t.Fatalf("median = %d, want %d", got, tt.want)
+			}
+		})
+	}
+}
+
+func TestMedianSalaryIgnoresDeletedOpenings(t *testing.T) {
+	repo, _ := newRepo(t)
+	ctx := context.Background()
+	stored := seed(t, repo, sample()...) // 15000, 9000, 21500 -> median 15000
+
+	if err := repo.Delete(ctx, &stored[0]); err != nil {
+		t.Fatalf("Delete: %v", err)
+	}
+
+	median, err := repo.MedianSalary(ctx)
+	if err != nil {
+		t.Fatalf("MedianSalary: %v", err)
+	}
+	// Left with 9000 and 21500.
+	if median != 15250 {
+		t.Fatalf("median = %d, want 15250", median)
 	}
 }
 

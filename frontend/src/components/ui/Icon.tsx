@@ -35,12 +35,8 @@ export type IconName =
   | 'trending'
   | 'menu'
   | 'eye'
-  | 'radar'
   | 'compass'
-  | 'compass-rose'
-  | 'scope'
 
-/** Exported so the favicon can be rebuilt from the same path the header draws. */
 export const ICON_PATHS: Record<IconName, string> = {
   briefcase:
     'M3 8.5A2.5 2.5 0 0 1 5.5 6h13A2.5 2.5 0 0 1 21 8.5v9a2.5 2.5 0 0 1-2.5 2.5h-13A2.5 2.5 0 0 1 3 17.5v-9Zm6-2V5.5A1.5 1.5 0 0 1 10.5 4h3A1.5 1.5 0 0 1 15 5.5V6M3 12h18',
@@ -81,16 +77,9 @@ export const ICON_PATHS: Record<IconName, string> = {
   eye:
     'M2.5 12S6 5.5 12 5.5 21.5 12 21.5 12 18 18.5 12 18.5 2.5 12 2.5 12Zm9.5 2.75a2.75 2.75 0 1 0 0-5.5 2.75 2.75 0 0 0 0 5.5Z',
 
-  /* ---- Brand mark candidates ---- */
-  // Scope with a sweep arm ending exactly on the rim, plus a contact blip.
-  radar:
-    'M12 3.5a8.5 8.5 0 1 0 0 17 8.5 8.5 0 0 0 0-17ZM12 8.5a3.5 3.5 0 1 0 0 7 3.5 3.5 0 0 0 0-7ZM12 12 18 6M15.8 15.8h.01',
+  /* ---- Brand mark ---- */
   // Needle whose two tips sit 6.5 from the centre, so it reads level in the dial.
   compass: 'M12 3.5a8.5 8.5 0 1 0 0 17 8.5 8.5 0 0 0 0-17ZM16.6 7.4l-2.4 7.2-7.2 2.4 2.4-7.2 7.2-2.4Z',
-  'compass-rose':
-    'M12 3.5a8.5 8.5 0 1 0 0 17 8.5 8.5 0 0 0 0-17ZM12 6l1.7 4.3 4.3 1.7-4.3 1.7-1.7 4.3-1.7-4.3-4.3-1.7 4.3-1.7 1.7-4.3Z',
-  scope:
-    'M12 4.5a7.5 7.5 0 1 0 0 15 7.5 7.5 0 0 0 0-15ZM12 9a3 3 0 1 0 0 6 3 3 0 0 0 0-6ZM12 2v3M12 19v3M2 12h3M19 12h3',
 }
 
 interface IconProps {

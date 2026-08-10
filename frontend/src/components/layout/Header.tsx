@@ -3,7 +3,6 @@ import styles from './Header.module.css'
 import { Button } from '../ui/Button'
 import { Icon, type IconName } from '../ui/Icon'
 import { ROUTE_PATHS, type Route } from '../../router/useHashRoute'
-import { BRAND_MARKS, useBrandMark } from './brandMark'
 import type { Theme } from '../../hooks/useTheme'
 
 interface HeaderProps {
@@ -21,7 +20,6 @@ const NAV: { route: Route; label: string; icon: IconName }[] = [
 
 export function Header({ route, theme, onToggleTheme, onCreate }: HeaderProps) {
   const [menuOpen, setMenuOpen] = useState(false)
-  const { mark, index, cycle } = useBrandMark()
 
   // The mobile sheet has no reason to outlive the navigation that was its point.
   useEffect(() => setMenuOpen(false), [route])
@@ -31,7 +29,7 @@ export function Header({ route, theme, onToggleTheme, onCreate }: HeaderProps) {
       <div className={styles.inner}>
         <a className={styles.brand} href={ROUTE_PATHS.home}>
           <span className={styles.mark}>
-            <Icon name={mark.icon} size={22} />
+            <Icon name="compass" size={22} />
           </span>
           <span className={styles.wordmark}>
             Go<strong>portunitties</strong>
@@ -52,18 +50,6 @@ export function Header({ route, theme, onToggleTheme, onCreate }: HeaderProps) {
         </nav>
 
         <div className={styles.actions}>
-          {/* ANDAIME TEMPORÁRIO: cicla as marcas candidatas. Sai com a escolha. */}
-          <button
-            className={styles.markPicker}
-            onClick={cycle}
-            title="Alternar a marca candidata"
-          >
-            <span className={styles.markPickerIndex}>
-              {index + 1}/{BRAND_MARKS.length}
-            </span>
-            {mark.label}
-          </button>
-
           <button
             className={styles.iconButton}
             onClick={onToggleTheme}

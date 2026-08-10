@@ -165,11 +165,16 @@ type MonthCount struct {
 }
 
 // OpeningStats is the dashboard's aggregate view of the whole index.
+//
+// The salary figures ignore openings saved with salary 0 ("a combinar").
+// MedianSalary is what the interface shows: a single high posting skews the
+// mean into a number that describes no real opening.
 type OpeningStats struct {
 	Total         int64        `json:"total"`
 	Remote        int64        `json:"remote"`
 	Onsite        int64        `json:"onsite"`
 	Companies     int64        `json:"companies"`
+	MedianSalary  int64        `json:"medianSalary"`
 	AverageSalary int64        `json:"averageSalary"`
 	MaxSalary     int64        `json:"maxSalary"`
 	Monthly       []MonthCount `json:"monthly"`

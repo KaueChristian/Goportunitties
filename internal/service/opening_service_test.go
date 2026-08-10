@@ -18,15 +18,16 @@ type fakeRepo struct {
 	openings map[uint]*model.Opening
 	nextID   uint
 
-	lastFilter repository.Filter
-	total      int64
-	remote     int64
-	onsite     int64
-	locations  []repository.LocationCount
-	maxSalary  int64
-	aggregates repository.Aggregates
-	monthly    []repository.MonthCount
-	months     int
+	lastFilter   repository.Filter
+	total        int64
+	remote       int64
+	onsite       int64
+	locations    []repository.LocationCount
+	maxSalary    int64
+	medianSalary int64
+	aggregates   repository.Aggregates
+	monthly      []repository.MonthCount
+	months       int
 
 	err error
 }
@@ -92,6 +93,13 @@ func (f *fakeRepo) MaxSalary(context.Context) (int64, error) {
 		return 0, f.err
 	}
 	return f.maxSalary, nil
+}
+
+func (f *fakeRepo) MedianSalary(context.Context) (int64, error) {
+	if f.err != nil {
+		return 0, f.err
+	}
+	return f.medianSalary, nil
 }
 
 func (f *fakeRepo) Aggregates(context.Context) (repository.Aggregates, error) {
@@ -400,6 +408,7 @@ func TestFacetsCeilingHasAFloorOnAnEmptyIndex(t *testing.T) {
 func TestStatsDerivesOnsiteAndKeepsTheSeries(t *testing.T) {
 	repo := newFakeRepo()
 	repo.aggregates = repository.Aggregates{Total: 10, Remote: 6, Companies: 7, AverageSalary: 12000, MaxSalary: 30000}
+	repo.medianSalary = 11000
 	repo.monthly = []repository.MonthCount{{Month: "2026-07", Count: 4}, {Month: "2026-08", Count: 6}}
 	svc := service.NewOpeningService(repo)
 
@@ -413,6 +422,10 @@ func TestStatsDerivesOnsiteAndKeepsTheSeries(t *testing.T) {
 	}
 	if stats.Companies != 7 || stats.AverageSalary != 12000 || stats.MaxSalary != 30000 {
 		t.Fatalf("stats = %+v", stats)
+	}
+	// The median comes from its own query, not from the aggregate row.
+	if stats.MedianSalary != 11000 {
+		t.Fatalf("median = %d, want 11000", stats.MedianSalary)
 	}
 	if len(stats.Monthly) != 2 || stats.Monthly[0].Month != "2026-07" {
 		t.Fatalf("monthly series = %+v", stats.Monthly)

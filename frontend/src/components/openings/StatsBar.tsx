@@ -15,11 +15,11 @@ interface StatsBarProps {
 }
 
 export function StatsBar({ stats }: StatsBarProps) {
-  const { total, remote, companies, averageSalary } = stats ?? {
+  const { total, remote, companies, medianSalary } = stats ?? {
     total: 0,
     remote: 0,
     companies: 0,
-    averageSalary: 0,
+    medianSalary: 0,
   }
 
   const tiles: { label: string; value: string; note?: string; icon: IconName; tone: Tone }[] = [
@@ -38,9 +38,12 @@ export function StatsBar({ stats }: StatsBarProps) {
       tone: 'remote',
     },
     {
-      label: 'Salário médio',
-      value: averageSalary > 0 ? formatSalaryCompact(averageSalary) : '—',
-      note: averageSalary > 0 ? 'por mês' : undefined,
+      // Median, not mean: a single high posting drags an average to a figure
+      // that describes no real opening. Openings without a stated salary are
+      // left out of the calculation entirely.
+      label: 'Salário mediano',
+      value: medianSalary > 0 ? formatSalaryCompact(medianSalary) : '—',
+      note: medianSalary > 0 ? 'por mês' : undefined,
       icon: 'salary',
       tone: 'onsite',
     },

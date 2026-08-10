@@ -140,42 +140,6 @@
   display: none;
 }
 
-/*
- * ANDAIME TEMPORÁRIO: o tracejado é proposital — deixa óbvio que este controle
- * não faz parte da interface e sai junto com a escolha da marca.
- */
-.markPicker {
-  display: inline-flex;
-  align-items: center;
-  gap: var(--space-2);
-  height: 44px;
-  padding: 0 var(--space-4);
-  border: 1px dashed var(--border-strong);
-  border-radius: var(--radius-md);
-  color: var(--text-secondary);
-  font-size: var(--text-sm);
-  font-weight: 500;
-  white-space: nowrap;
-  transition: border-color var(--duration-fast) var(--ease-out);
-}
-
-.markPicker:hover {
-  border-color: var(--color-accent);
-  color: var(--color-accent);
-}
-
-.markPickerIndex {
-  color: var(--text-muted);
-  font-size: var(--text-xs);
-  font-variant-numeric: tabular-nums;
-}
-
-@media (max-width: 1100px) {
-  .markPicker {
-    display: none;
-  }
-}
-
 /* ---- Mobile sheet ---- */
 
 .sheet {

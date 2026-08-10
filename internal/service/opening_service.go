@@ -116,6 +116,11 @@ func (s *openingService) Stats(ctx context.Context) (dto.OpeningStats, error) {
 		return dto.OpeningStats{}, err
 	}
 
+	median, err := s.repo.MedianSalary(ctx)
+	if err != nil {
+		return dto.OpeningStats{}, err
+	}
+
 	monthly, err := s.repo.MonthlyCounts(ctx, monthsOnChart)
 	if err != nil {
 		return dto.OpeningStats{}, err
@@ -131,6 +136,7 @@ func (s *openingService) Stats(ctx context.Context) (dto.OpeningStats, error) {
 		Remote:        aggregates.Remote,
 		Onsite:        aggregates.Total - aggregates.Remote,
 		Companies:     aggregates.Companies,
+		MedianSalary:  median,
 		AverageSalary: aggregates.AverageSalary,
 		MaxSalary:     aggregates.MaxSalary,
 		Monthly:       months,

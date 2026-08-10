@@ -59,12 +59,17 @@ export interface MonthCount {
   count: number
 }
 
-/** Mirrors dto.OpeningStats — aggregates over the whole index, not one page. */
+/**
+ * Mirrors dto.OpeningStats — aggregates over the whole index, not one page.
+ *
+ * The salary figures ignore openings saved with salary 0 ("a combinar").
+ */
 export interface OpeningStats {
   total: number
   remote: number
   onsite: number
   companies: number
+  medianSalary: number
   averageSalary: number
   maxSalary: number
   monthly: MonthCount[]
