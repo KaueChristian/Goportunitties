@@ -11,6 +11,11 @@ interface OpeningFormProps {
   /** When set, the form edits this opening; otherwise it creates a new one. */
   editing: Opening | null
   submitting: boolean
+  /**
+   * Per-field messages from the API's 422, keyed by the same names this form
+   * uses. They cover the rules only the server can enforce.
+   */
+  fieldErrors?: Record<string, string>
   onClose: () => void
   onSubmit: (payload: OpeningPayload) => void
 }
@@ -52,8 +57,8 @@ function validate(form: FormState): FormErrors {
   const salary = Number(form.salary)
   if (!form.salary.trim()) {
     errors.salary = 'Informe o salário.'
-  } else if (!Number.isFinite(salary) || salary <= 0) {
-    errors.salary = 'O salário precisa ser maior que zero.'
+  } else if (!Number.isFinite(salary) || salary < 0) {
+    errors.salary = 'O salário não pode ser negativo.'
   }
 
   return errors
@@ -63,11 +68,16 @@ export function OpeningForm({
   open,
   editing,
   submitting,
+  fieldErrors,
   onClose,
   onSubmit,
 }: OpeningFormProps) {
   const [form, setForm] = useState<FormState>(EMPTY)
   const [errors, setErrors] = useState<FormErrors>({})
+
+  // What the server rejected wins over what the client checked: it is the later
+  // and stricter of the two verdicts.
+  const shown: FormErrors = { ...errors, ...(fieldErrors as FormErrors) }
 
   // Reload the fields whenever the modal opens for a different record.
   useEffect(() => {
@@ -134,7 +144,7 @@ export function OpeningForm({
           label="Cargo"
           placeholder="Ex.: Desenvolvedor Back-end Go"
           value={form.role}
-          error={errors.role}
+          error={shown.role}
           onChange={(event) => patch({ role: event.target.value })}
           autoFocus
         />
@@ -144,7 +154,7 @@ export function OpeningForm({
             label="Empresa"
             placeholder="Ex.: Acme Corp"
             value={form.company}
-            error={errors.company}
+            error={shown.company}
             prefix={<Icon name="building" size={15} />}
             onChange={(event) => patch({ company: event.target.value })}
           />
@@ -152,7 +162,7 @@ export function OpeningForm({
             label="Localidade"
             placeholder="Ex.: São Paulo, SP"
             value={form.location}
-            error={errors.location}
+            error={shown.location}
             prefix={<Icon name="pin" size={15} />}
             onChange={(event) => patch({ location: event.target.value })}
           />
@@ -162,11 +172,11 @@ export function OpeningForm({
           <Field
             label="Salário mensal (R$)"
             type="number"
-            min={1}
+            min={0}
             placeholder="10000"
             value={form.salary}
-            error={errors.salary}
-            hint="Somente números, sem pontuação."
+            error={shown.salary}
+            hint="Somente números, sem pontuação. Use 0 para “a combinar”."
             prefix={<Icon name="salary" size={15} />}
             onChange={(event) => patch({ salary: event.target.value })}
           />
@@ -175,7 +185,7 @@ export function OpeningForm({
             type="url"
             placeholder="https://empresa.com/vagas/123"
             value={form.link}
-            error={errors.link}
+            error={shown.link}
             prefix={<Icon name="external" size={15} />}
             onChange={(event) => patch({ link: event.target.value })}
           />

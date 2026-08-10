@@ -1,42 +1,21 @@
 import { useId, useMemo } from 'react'
 import styles from './MonthlyChart.module.css'
-import type { Opening } from '../../types/opening'
+import type { MonthCount } from '../../types/opening'
+import { bucketByMonth } from './months'
 
 interface MonthlyChartProps {
-  openings: Opening[]
+  /**
+   * The series the API aggregated, as YYYY-MM. It only carries months that have
+   * openings, so the chart still lays out the full axis itself and fills the
+   * gaps with zeros.
+   */
+  data: MonthCount[]
   months?: number
 }
 
 const VIEW_WIDTH = 600
 const VIEW_HEIGHT = 200
 const GRID_LINES = 4
-
-const monthLabel = new Intl.DateTimeFormat('pt-BR', { month: 'short' })
-
-interface Bucket {
-  label: string
-  count: number
-}
-
-function bucketByMonth(openings: Opening[], months: number): Bucket[] {
-  const buckets: Bucket[] = []
-  const index = new Map<string, number>()
-  const now = new Date()
-
-  for (let offset = months - 1; offset >= 0; offset -= 1) {
-    const date = new Date(now.getFullYear(), now.getMonth() - offset, 1)
-    index.set(`${date.getFullYear()}-${date.getMonth()}`, buckets.length)
-    buckets.push({ label: monthLabel.format(date).replace('.', ''), count: 0 })
-  }
-
-  for (const opening of openings) {
-    const date = new Date(opening.createdAt)
-    const slot = index.get(`${date.getFullYear()}-${date.getMonth()}`)
-    if (slot !== undefined) buckets[slot].count += 1
-  }
-
-  return buckets
-}
 
 /**
  * Smooth line through the points using a cubic whose control points sit on the
@@ -58,9 +37,9 @@ function buildPath(points: { x: number; y: number }[]): string {
   return path
 }
 
-export function MonthlyChart({ openings, months = 9 }: MonthlyChartProps) {
+export function MonthlyChart({ data, months = 9 }: MonthlyChartProps) {
   const gradientId = useId()
-  const buckets = useMemo(() => bucketByMonth(openings, months), [openings, months])
+  const buckets = useMemo(() => bucketByMonth(data, months), [data, months])
 
   const peak = Math.max(1, ...buckets.map((bucket) => bucket.count))
   const step = buckets.length > 1 ? VIEW_WIDTH / (buckets.length - 1) : 0

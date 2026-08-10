@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react'
+import { useState } from 'react'
 import styles from './DashboardPage.module.css'
 
 import { StatsBar } from '../components/openings/StatsBar'
@@ -8,22 +8,15 @@ import { EmptyState } from '../components/ui/EmptyState'
 import { SkeletonList } from '../components/ui/Skeleton'
 import { Button } from '../components/ui/Button'
 import { Icon, type IconName } from '../components/ui/Icon'
-import { ROUTE_PATHS } from '../router/useHashRoute'
+import { Pagination } from '../components/ui/Pagination'
+import { ROUTE_PATHS, useHashRoute } from '../router/useHashRoute'
+import { useOpeningsQuery } from '../hooks/useOpeningsQuery'
+import { useOpenings, PAGE_SIZE } from '../state/OpeningsProvider'
+import { useDialogs } from '../state/DialogsProvider'
 import { formatRelativeDate, formatSalary } from '../utils/format'
 import type { Opening } from '../types/opening'
 
 type Panel = 'overview' | 'openings'
-
-interface DashboardPageProps {
-  openings: Opening[]
-  loading: boolean
-  error: string | null
-  onSelect: (opening: Opening) => void
-  onEdit: (opening: Opening) => void
-  onDelete: (opening: Opening) => void
-  onCreate: () => void
-  onReload: () => void
-}
 
 const PANELS: { value: Panel; label: string; icon: IconName }[] = [
   { value: 'overview', label: 'Visão geral', icon: 'chart' },
@@ -33,37 +26,29 @@ const PANELS: { value: Panel; label: string; icon: IconName }[] = [
 const ACTIVITY_COUNT = 5
 const RECENT_COUNT = 4
 
-export function DashboardPage({
-  openings,
-  loading,
-  error,
-  onSelect,
-  onEdit,
-  onDelete,
-  onCreate,
-  onReload,
-}: DashboardPageProps) {
+export function DashboardPage() {
+  const { navigate } = useHashRoute()
+  const { stats, statsLoading, select, revision } = useOpenings()
+  const { openCreate, openEdit, confirmDelete } = useDialogs()
+
   const [panel, setPanel] = useState<Panel>('overview')
+  const [page, setPage] = useState(1)
 
-  const byRecency = useMemo(
-    () => [...openings].sort((a, b) => Date.parse(b.createdAt) - Date.parse(a.createdAt)),
-    [openings],
-  )
+  // Each panel asks the API for exactly the slice it renders — the dashboard no
+  // longer sorts a full in-memory copy of the index to find four rows.
+  const recent = useOpeningsQuery({ sort: 'recent', pageSize: RECENT_COUNT }, { revision })
+  const activity = useOpeningsQuery({ sort: 'updated', pageSize: ACTIVITY_COUNT }, { revision })
+  const topPaying = useOpeningsQuery({ sort: 'salary-desc', pageSize: 3 }, { revision })
+  const all = useOpeningsQuery({ sort: 'recent', page, pageSize: PAGE_SIZE }, { revision })
 
-  // "Activity" is the real edit history the API already gives us: an opening
-  // whose updatedAt moved past its createdAt was edited after publication.
-  const activity = useMemo(
-    () =>
-      [...openings]
-        .sort((a, b) => Date.parse(b.updatedAt) - Date.parse(a.updatedAt))
-        .slice(0, ACTIVITY_COUNT),
-    [openings],
-  )
+  const loading = statsLoading || recent.loading
+  const error = recent.error ?? all.error
+  const total = stats?.total ?? 0
 
-  const topPaying = useMemo(
-    () => [...openings].sort((a, b) => b.salary - a.salary).slice(0, 3),
-    [openings],
-  )
+  const openDetail = (opening: Opening) => {
+    select(opening)
+    navigate('jobs')
+  }
 
   return (
     <div className={styles.page}>
@@ -87,13 +72,11 @@ export function DashboardPage({
             >
               <Icon name={item.icon} size={18} />
               {item.label}
-              {item.value === 'openings' && (
-                <span className={styles.navCount}>{openings.length}</span>
-              )}
+              {item.value === 'openings' && <span className={styles.navCount}>{total}</span>}
             </button>
           ))}
 
-          <button className={styles.navItem} onClick={onCreate}>
+          <button className={styles.navItem} onClick={openCreate}>
             <Icon name="send" size={18} />
             Publicar vaga
           </button>
@@ -113,7 +96,7 @@ export function DashboardPage({
             title="Não foi possível carregar as vagas"
             description={error}
             action={
-              <Button variant="primary" onClick={onReload}>
+              <Button variant="primary" onClick={recent.reload}>
                 Tentar novamente
               </Button>
             }
@@ -122,7 +105,7 @@ export function DashboardPage({
           <SkeletonList count={3} />
         ) : panel === 'overview' ? (
           <>
-            <StatsBar openings={openings} />
+            <StatsBar stats={stats} />
 
             <div className={styles.split}>
               <section className={styles.panel}>
@@ -130,7 +113,7 @@ export function DashboardPage({
                   <h3 className={styles.panelTitle}>Publicações por mês</h3>
                   <span className={styles.panelNote}>Últimos 9 meses</span>
                 </header>
-                <MonthlyChart openings={openings} />
+                <MonthlyChart data={stats?.monthly ?? []} />
               </section>
 
               <section className={styles.panel}>
@@ -138,11 +121,11 @@ export function DashboardPage({
                   <h3 className={styles.panelTitle}>Atividade recente</h3>
                 </header>
 
-                {activity.length === 0 ? (
+                {activity.openings.length === 0 ? (
                   <p className={styles.blank}>Nada por aqui ainda.</p>
                 ) : (
                   <ul className={styles.activity}>
-                    {activity.map((opening) => {
+                    {activity.openings.map((opening) => {
                       const edited = opening.updatedAt !== opening.createdAt
                       return (
                         <li key={opening.id}>
@@ -166,7 +149,7 @@ export function DashboardPage({
               </section>
             </div>
 
-            {topPaying.length > 0 && (
+            {topPaying.openings.length > 0 && (
               <section className={styles.panel}>
                 <header className={styles.panelHead}>
                   <h3 className={styles.panelTitle}>Maiores salários</h3>
@@ -174,7 +157,7 @@ export function DashboardPage({
                 </header>
 
                 <ol className={styles.ranking}>
-                  {topPaying.map((opening, index) => (
+                  {topPaying.openings.map((opening, index) => (
                     <li key={opening.id}>
                       <span className={styles.rankPosition}>{index + 1}</span>
                       <span className={styles.rankText}>
@@ -197,50 +180,54 @@ export function DashboardPage({
                 </a>
               </header>
 
-              {byRecency.length === 0 ? (
+              {recent.openings.length === 0 ? (
                 <p className={styles.blank}>Nenhuma vaga publicada ainda.</p>
               ) : (
                 <div className={styles.recent}>
-                  {byRecency.slice(0, RECENT_COUNT).map((opening, index) => (
+                  {recent.openings.map((opening, index) => (
                     <OpeningCard
                       key={opening.id}
                       opening={opening}
                       index={index}
                       selected={false}
-                      onSelect={onSelect}
-                      onEdit={onEdit}
-                      onDelete={onDelete}
+                      onSelect={openDetail}
+                      onEdit={openEdit}
+                      onDelete={confirmDelete}
                     />
                   ))}
                 </div>
               )}
             </section>
           </>
-        ) : byRecency.length === 0 ? (
+        ) : all.openings.length === 0 ? (
           <EmptyState
             title="Nenhuma vaga publicada ainda"
             description="Publique a primeira oportunidade para começar a montar o radar de vagas."
             action={
-              <Button variant="primary" icon={<Icon name="plus" size={17} />} onClick={onCreate}>
+              <Button variant="primary" icon={<Icon name="plus" size={17} />} onClick={openCreate}>
                 Publicar vaga
               </Button>
             }
           />
         ) : (
-          <div className={styles.stack}>
-            {byRecency.map((opening, index) => (
-              <OpeningCard
-                key={opening.id}
-                opening={opening}
-                index={index}
-                layout="list"
-                selected={false}
-                onSelect={onSelect}
-                onEdit={onEdit}
-                onDelete={onDelete}
-              />
-            ))}
-          </div>
+          <>
+            <div className={styles.stack}>
+              {all.openings.map((opening, index) => (
+                <OpeningCard
+                  key={opening.id}
+                  opening={opening}
+                  index={index}
+                  layout="list"
+                  selected={false}
+                  onSelect={openDetail}
+                  onEdit={openEdit}
+                  onDelete={confirmDelete}
+                />
+              ))}
+            </div>
+
+            <Pagination page={page} totalPages={all.pagination.totalPages} onChange={setPage} />
+          </>
         )}
       </div>
     </div>

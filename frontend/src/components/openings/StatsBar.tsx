@@ -1,22 +1,26 @@
 import styles from './StatsBar.module.css'
 import { Icon, type IconName } from '../ui/Icon'
-import type { Opening } from '../../types/opening'
+import type { OpeningStats } from '../../types/opening'
 import { formatSalaryCompact } from '../../utils/format'
 
 type Tone = 'accent' | 'remote' | 'onsite'
 
 interface StatsBarProps {
-  openings: Opening[]
+  /**
+   * Aggregates over the whole index, computed in SQL. They used to be derived
+   * from the openings array on screen, which stopped being the whole set the
+   * moment the listing was paginated.
+   */
+  stats: OpeningStats | null
 }
 
-export function StatsBar({ openings }: StatsBarProps) {
-  const total = openings.length
-  const remote = openings.filter((opening) => opening.remote).length
-  const companies = new Set(openings.map((opening) => opening.company)).size
-  const averageSalary =
-    total === 0
-      ? 0
-      : Math.round(openings.reduce((sum, opening) => sum + opening.salary, 0) / total)
+export function StatsBar({ stats }: StatsBarProps) {
+  const { total, remote, companies, averageSalary } = stats ?? {
+    total: 0,
+    remote: 0,
+    companies: 0,
+    averageSalary: 0,
+  }
 
   const tiles: { label: string; value: string; note?: string; icon: IconName; tone: Tone }[] = [
     {
@@ -35,8 +39,8 @@ export function StatsBar({ openings }: StatsBarProps) {
     },
     {
       label: 'Salário médio',
-      value: total > 0 ? formatSalaryCompact(averageSalary) : '—',
-      note: total > 0 ? 'por mês' : undefined,
+      value: averageSalary > 0 ? formatSalaryCompact(averageSalary) : '—',
+      note: averageSalary > 0 ? 'por mês' : undefined,
       icon: 'salary',
       tone: 'onsite',
     },

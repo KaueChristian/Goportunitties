@@ -8,49 +8,35 @@ import { SkeletonList } from '../components/ui/Skeleton'
 import { EmptyState } from '../components/ui/EmptyState'
 import { Button } from '../components/ui/Button'
 import { Icon } from '../components/ui/Icon'
-import { ROUTE_PATHS } from '../router/useHashRoute'
-import type { Filters } from '../components/openings/filters'
+import { ROUTE_PATHS, useHashRoute } from '../router/useHashRoute'
+import { useOpeningsQuery } from '../hooks/useOpeningsQuery'
+import { useOpenings } from '../state/OpeningsProvider'
+import { useDialogs } from '../state/DialogsProvider'
 import type { Opening } from '../types/opening'
 
-interface HomePageProps {
-  openings: Opening[]
-  loading: boolean
-  filters: Filters
-  locations: string[]
-  onFiltersChange: (filters: Filters) => void
-  onSearch: () => void
-  onSelect: (opening: Opening) => void
-  onEdit: (opening: Opening) => void
-  onDelete: (opening: Opening) => void
-  onCreate: () => void
-}
-
 const HIGHLIGHT_COUNT = 6
+/** Fetched beyond what is shown, so the popular-term chips have something to count. */
+const HIGHLIGHT_FETCH = 24
 
-export function HomePage({
-  openings,
-  loading,
-  filters,
-  locations,
-  onFiltersChange,
-  onSearch,
-  onSelect,
-  onEdit,
-  onDelete,
-  onCreate,
-}: HomePageProps) {
-  const highlights = useMemo(
-    () =>
-      [...openings]
-        .sort((a, b) => Date.parse(b.createdAt) - Date.parse(a.createdAt))
-        .slice(0, HIGHLIGHT_COUNT),
-    [openings],
+export function HomePage() {
+  const { navigate } = useHashRoute()
+  const { filters, setFilters, facets, stats, statsLoading, select, revision } = useOpenings()
+  const { openCreate, openEdit, confirmDelete } = useDialogs()
+
+  // The home page always shows the newest openings, whatever the jobs page is
+  // currently filtered by — so it runs its own query.
+  const { openings: recent, loading } = useOpeningsQuery(
+    { sort: 'recent', page: 1, pageSize: HIGHLIGHT_FETCH },
+    { revision },
   )
+
+  const highlights = recent.slice(0, HIGHLIGHT_COUNT)
+  const total = stats?.total ?? 0
 
   // The chips are drawn from the roles actually on the board, not a fixed list.
   const popular = useMemo(() => {
     const words = new Map<string, number>()
-    for (const opening of openings) {
+    for (const opening of recent) {
       for (const word of opening.role.split(/\s+/)) {
         if (word.length < 4) continue
         words.set(word, (words.get(word) ?? 0) + 1)
@@ -60,7 +46,17 @@ export function HomePage({
       .sort((a, b) => b[1] - a[1])
       .slice(0, 5)
       .map(([word]) => word)
-  }, [openings])
+  }, [recent])
+
+  const openDetail = (opening: Opening) => {
+    select(opening)
+    navigate('jobs')
+  }
+
+  const searchFor = (term: string) => {
+    setFilters({ ...filters, search: term })
+    navigate('jobs')
+  }
 
   return (
     <>
@@ -68,8 +64,8 @@ export function HomePage({
         <div className={styles.heroInner}>
           <div className={styles.heroContent}>
             <p className={styles.eyebrow}>
-              {openings.length > 0
-                ? `${openings.length} ${openings.length === 1 ? 'vaga aberta' : 'vagas abertas'} agora`
+              {total > 0
+                ? `${total} ${total === 1 ? 'vaga aberta' : 'vagas abertas'} agora`
                 : 'Seu radar de oportunidades'}
             </p>
 
@@ -84,23 +80,16 @@ export function HomePage({
 
             <SearchForm
               filters={filters}
-              locations={locations}
-              onChange={onFiltersChange}
-              onSubmit={onSearch}
+              locations={facets.locations.map((location) => location.value)}
+              onChange={setFilters}
+              onSubmit={() => navigate('jobs')}
             />
 
             {popular.length > 0 && (
               <p className={styles.popular}>
                 <span className={styles.popularLabel}>Buscas populares:</span>
                 {popular.map((term) => (
-                  <button
-                    key={term}
-                    className={styles.chip}
-                    onClick={() => {
-                      onFiltersChange({ ...filters, search: term })
-                      onSearch()
-                    }}
-                  >
+                  <button key={term} className={styles.chip} onClick={() => searchFor(term)}>
                     {term}
                   </button>
                 ))}
@@ -142,9 +131,9 @@ export function HomePage({
       </section>
 
       <div className={styles.page}>
-        {!loading && openings.length > 0 && (
+        {!statsLoading && total > 0 && (
           <section className={styles.section}>
-            <StatsBar openings={openings} />
+            <StatsBar stats={stats} />
           </section>
         )}
 
@@ -168,7 +157,7 @@ export function HomePage({
               title="Nenhuma vaga publicada ainda"
               description="Publique a primeira oportunidade para começar a montar o radar de vagas."
               action={
-                <Button variant="primary" icon={<Icon name="plus" size={17} />} onClick={onCreate}>
+                <Button variant="primary" icon={<Icon name="plus" size={17} />} onClick={openCreate}>
                   Publicar vaga
                 </Button>
               }
@@ -181,9 +170,9 @@ export function HomePage({
                   opening={opening}
                   index={index}
                   selected={false}
-                  onSelect={onSelect}
-                  onEdit={onEdit}
-                  onDelete={onDelete}
+                  onSelect={openDetail}
+                  onEdit={openEdit}
+                  onDelete={confirmDelete}
                 />
               ))}
             </div>
@@ -198,7 +187,7 @@ export function HomePage({
             </p>
           </div>
 
-          <Button variant="primary" icon={<Icon name="send" size={17} />} onClick={onCreate}>
+          <Button variant="primary" icon={<Icon name="send" size={17} />} onClick={openCreate}>
             Publicar vaga
           </Button>
         </section>

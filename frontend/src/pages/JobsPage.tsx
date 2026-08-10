@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react'
+import { useState } from 'react'
 import styles from './JobsPage.module.css'
 
 import { SearchForm } from '../components/openings/SearchForm'
@@ -10,45 +10,31 @@ import { EmptyState } from '../components/ui/EmptyState'
 import { SkeletonList } from '../components/ui/Skeleton'
 import { Button } from '../components/ui/Button'
 import { Icon } from '../components/ui/Icon'
-import { countFacets, filterOpenings, isFiltered, DEFAULT_FILTERS } from '../components/openings/filters'
-import type { Filters } from '../components/openings/filters'
-import type { Opening } from '../types/opening'
+import { Pagination } from '../components/ui/Pagination'
+import { isFiltered } from '../components/openings/filters'
+import { useOpenings } from '../state/OpeningsProvider'
+import { useDialogs } from '../state/DialogsProvider'
 
-interface JobsPageProps {
-  openings: Opening[]
-  loading: boolean
-  error: string | null
-  filters: Filters
-  locations: string[]
-  selected: Opening | null
-  onFiltersChange: (filters: Filters) => void
-  onSelect: (opening: Opening) => void
-  onCloseDetail: () => void
-  onEdit: (opening: Opening) => void
-  onDelete: (opening: Opening) => void
-  onCreate: () => void
-  onReload: () => void
-}
+export function JobsPage() {
+  const {
+    filters,
+    setFilters,
+    patchFilters,
+    resetFilters,
+    openings,
+    pagination,
+    facets,
+    loading,
+    error,
+    reload,
+    selected,
+    select,
+    page,
+    goToPage,
+  } = useOpenings()
+  const { openCreate, openEdit, confirmDelete } = useDialogs()
 
-export function JobsPage({
-  openings,
-  loading,
-  error,
-  filters,
-  locations,
-  selected,
-  onFiltersChange,
-  onSelect,
-  onCloseDetail,
-  onEdit,
-  onDelete,
-  onCreate,
-  onReload,
-}: JobsPageProps) {
   const [layout, setLayout] = useState<CardLayout>('grid')
-
-  const visible = useMemo(() => filterOpenings(openings, filters), [openings, filters])
-  const counts = useMemo(() => countFacets(openings, filters), [openings, filters])
 
   return (
     <>
@@ -58,7 +44,11 @@ export function JobsPage({
           <p className={styles.lead}>
             Filtre por modalidade, salário e localidade para chegar às oportunidades que importam.
           </p>
-          <SearchForm filters={filters} locations={locations} onChange={onFiltersChange} />
+          <SearchForm
+            filters={filters}
+            locations={facets.locations.map((location) => location.value)}
+            onChange={setFilters}
+          />
         </div>
       </section>
 
@@ -71,7 +61,7 @@ export function JobsPage({
               title="Não foi possível carregar as vagas"
               description={error}
               action={
-                <Button variant="primary" onClick={onReload}>
+                <Button variant="primary" onClick={reload}>
                   Tentar novamente
                 </Button>
               }
@@ -79,32 +69,26 @@ export function JobsPage({
           </div>
         ) : (
           <>
-            <FilterSidebar filters={filters} counts={counts} onChange={onFiltersChange} />
+            <FilterSidebar filters={filters} counts={facets} onChange={setFilters} />
 
             <div className={styles.results}>
               <ResultsToolbar
-                count={visible.length}
+                count={pagination.total}
                 layout={layout}
                 sort={filters.sort}
                 onLayoutChange={setLayout}
-                onSortChange={(sort) => onFiltersChange({ ...filters, sort })}
+                onSortChange={(sort) => patchFilters({ sort })}
               />
 
               {loading ? (
                 <SkeletonList />
-              ) : visible.length === 0 ? (
+              ) : openings.length === 0 ? (
                 isFiltered(filters) ? (
                   <EmptyState
                     icon="search"
                     title="Nenhuma vaga corresponde aos filtros"
                     description="Tente ajustar a busca, a modalidade, o salário mínimo ou a localidade."
-                    action={
-                      <Button
-                        onClick={() => onFiltersChange({ ...DEFAULT_FILTERS, sort: filters.sort })}
-                      >
-                        Limpar filtros
-                      </Button>
-                    }
+                    action={<Button onClick={resetFilters}>Limpar filtros</Button>}
                   />
                 ) : (
                   <EmptyState
@@ -114,7 +98,7 @@ export function JobsPage({
                       <Button
                         variant="primary"
                         icon={<Icon name="plus" size={17} />}
-                        onClick={onCreate}
+                        onClick={openCreate}
                       >
                         Publicar vaga
                       </Button>
@@ -122,20 +106,28 @@ export function JobsPage({
                   />
                 )
               ) : (
-                <div className={`${styles.cards} ${styles[layout]}`}>
-                  {visible.map((opening, index) => (
-                    <OpeningCard
-                      key={opening.id}
-                      opening={opening}
-                      index={index}
-                      layout={layout}
-                      selected={selected?.id === opening.id}
-                      onSelect={onSelect}
-                      onEdit={onEdit}
-                      onDelete={onDelete}
-                    />
-                  ))}
-                </div>
+                <>
+                  <div className={`${styles.cards} ${styles[layout]}`}>
+                    {openings.map((opening, index) => (
+                      <OpeningCard
+                        key={opening.id}
+                        opening={opening}
+                        index={index}
+                        layout={layout}
+                        selected={selected?.id === opening.id}
+                        onSelect={select}
+                        onEdit={openEdit}
+                        onDelete={confirmDelete}
+                      />
+                    ))}
+                  </div>
+
+                  <Pagination
+                    page={page}
+                    totalPages={pagination.totalPages}
+                    onChange={goToPage}
+                  />
+                </>
               )}
             </div>
 
@@ -143,9 +135,9 @@ export function JobsPage({
               <div className={styles.detail}>
                 <OpeningDetail
                   opening={selected}
-                  onEdit={onEdit}
-                  onDelete={onDelete}
-                  onClose={onCloseDetail}
+                  onEdit={openEdit}
+                  onDelete={confirmDelete}
+                  onClose={() => select(null)}
                 />
               </div>
             )}

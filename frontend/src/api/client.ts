@@ -1,29 +1,59 @@
-import type { ApiResponse } from '../types/opening'
+import type { ApiResponse, Pagination } from '../types/opening'
 
 /**
- * Base URL of the API. In development Vite proxies /api to the Go server, so a
- * relative path keeps the browser on a single origin. Override with VITE_API_URL
- * when the frontend is deployed separately from the backend.
+ * Base URL of the API. In development Vite proxies /api to the Go server, and in
+ * production the same binary serves both — so a relative path is right in both
+ * cases. VITE_API_URL covers deploying the frontend somewhere else.
  */
 const BASE_URL = import.meta.env.VITE_API_URL ?? '/api/v1'
 
 /** An error carrying the HTTP status, so callers can branch on 404 vs 500. */
 export class ApiError extends Error {
   readonly status: number
+  /** Per-field messages from a 422, keyed by the field name the API uses. */
+  readonly fields: Record<string, string>
 
-  constructor(message: string, status: number) {
+  constructor(message: string, status: number, fields: Record<string, string> = {}) {
     super(message)
     this.name = 'ApiError'
     this.status = status
+    this.fields = fields
   }
 
   /** True when the request never reached the server (offline, API down). */
   get isNetworkError(): boolean {
     return this.status === 0
   }
+
+  /** True when the server rejected specific fields rather than the request. */
+  get isValidationError(): boolean {
+    return this.status === 422
+  }
 }
 
-async function request<T>(path: string, init: RequestInit = {}): Promise<T> {
+/** A response body split into its payload and, for collections, its window. */
+export interface ApiResult<T> {
+  data: T
+  meta?: Pagination
+}
+
+/** Values a query string can carry; nullish entries are dropped. */
+export type QueryParams = Record<string, string | number | boolean | null | undefined>
+
+/** Builds a query string, omitting anything the caller left unset. */
+export function toQueryString(params: QueryParams): string {
+  const search = new URLSearchParams()
+
+  for (const [key, value] of Object.entries(params)) {
+    if (value === null || value === undefined || value === '') continue
+    search.set(key, String(value))
+  }
+
+  const query = search.toString()
+  return query ? `?${query}` : ''
+}
+
+async function request<T>(path: string, init: RequestInit = {}): Promise<ApiResult<T>> {
   let response: Response
 
   try {
@@ -52,10 +82,11 @@ async function request<T>(path: string, init: RequestInit = {}): Promise<T> {
     throw new ApiError(
       body?.error ?? `A requisição falhou com status ${response.status}.`,
       response.status,
+      body?.fields ?? {},
     )
   }
 
-  return body?.data as T
+  return { data: body?.data as T, meta: body?.meta }
 }
 
 export const api = {
@@ -66,6 +97,9 @@ export const api = {
 
   put: <T>(path: string, payload: unknown) =>
     request<T>(path, { method: 'PUT', body: JSON.stringify(payload) }),
+
+  patch: <T>(path: string, payload: unknown) =>
+    request<T>(path, { method: 'PATCH', body: JSON.stringify(payload) }),
 
   delete: <T>(path: string) => request<T>(path, { method: 'DELETE' }),
 }

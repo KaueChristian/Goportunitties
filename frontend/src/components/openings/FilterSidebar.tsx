@@ -1,17 +1,13 @@
 import styles from './FilterSidebar.module.css'
 import { Icon } from '../ui/Icon'
 import { formatSalary } from '../../utils/format'
-import {
-  DEFAULT_FILTERS,
-  isFiltered,
-  type FacetCounts,
-  type Filters,
-  type RemoteFilter,
-} from './filters'
+import { DEFAULT_FILTERS, isFiltered, type Filters, type RemoteFilter } from './filters'
+import type { OpeningFacets } from '../../types/opening'
 
 interface FilterSidebarProps {
   filters: Filters
-  counts: FacetCounts
+  /** Option counts from the API, already computed against the current query. */
+  counts: OpeningFacets
   onChange: (filters: Filters) => void
 }
 
