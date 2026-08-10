@@ -3,6 +3,7 @@ package repository
 
 import (
 	"context"
+	"database/sql"
 	"fmt"
 	"strings"
 
@@ -44,6 +45,14 @@ type MonthCount struct {
 	Count int64
 }
 
+// Suggestion is one autocomplete entry: a role or a company that matches what
+// the user has typed, with how many openings carry it.
+type Suggestion struct {
+	Value string
+	Kind  string // "role" or "company"
+	Count int64
+}
+
 // Aggregates is the whole-index summary behind the dashboard.
 //
 // The salary figures cover only the openings that state one: a posting saved
@@ -62,6 +71,7 @@ type OpeningRepository interface {
 	Create(ctx context.Context, opening *model.Opening) error
 	FindByID(ctx context.Context, id uint) (*model.Opening, error)
 	List(ctx context.Context, filter Filter) ([]model.Opening, int64, error)
+	Suggest(ctx context.Context, term string, limit int) ([]Suggestion, error)
 	CountByRemote(ctx context.Context, filter Filter) (remote, onsite int64, err error)
 	CountByLocation(ctx context.Context, filter Filter) ([]LocationCount, error)
 	MaxSalary(ctx context.Context) (int64, error)
@@ -114,6 +124,43 @@ func (r *gormOpeningRepository) List(ctx context.Context, filter Filter) ([]mode
 		return nil, 0, fmt.Errorf("listing openings: %w", err)
 	}
 	return openings, total, nil
+}
+
+// Suggest returns the roles and companies matching term, most frequent first.
+//
+// Both columns are searched in one statement so the limit applies to the merged
+// list — querying them separately would give roles and companies a fixed share
+// of the slots regardless of how well either actually matches. The soft-delete
+// condition is spelled out because raw SQL bypasses the one GORM adds.
+func (r *gormOpeningRepository) Suggest(ctx context.Context, term string, limit int) ([]Suggestion, error) {
+	term = strings.TrimSpace(term)
+	if term == "" || limit <= 0 {
+		return []Suggestion{}, nil
+	}
+
+	pattern := "%" + strings.ToLower(term) + "%"
+	suggestions := []Suggestion{}
+
+	err := r.db.WithContext(ctx).Raw(`
+		SELECT value, kind, COUNT(*) AS count
+		FROM (
+			SELECT role AS value, 'role' AS kind FROM openings
+			WHERE deleted_at IS NULL AND LOWER(role) LIKE @pattern
+			UNION ALL
+			SELECT company AS value, 'company' AS kind FROM openings
+			WHERE deleted_at IS NULL AND LOWER(company) LIKE @pattern
+		)
+		GROUP BY value, kind
+		ORDER BY count DESC, value ASC
+		LIMIT @limit`,
+		sql.Named("pattern", pattern),
+		sql.Named("limit", limit),
+	).Scan(&suggestions).Error
+	if err != nil {
+		return nil, fmt.Errorf("reading suggestions: %w", err)
+	}
+
+	return suggestions, nil
 }
 
 func (r *gormOpeningRepository) CountByRemote(ctx context.Context, filter Filter) (int64, int64, error) {
@@ -191,8 +238,8 @@ func (r *gormOpeningRepository) MedianSalary(ctx context.Context) (int64, error)
 		Model(&model.Opening{}).
 		Where("salary > 0").
 		Order("salary ASC").
-		Limit(int(2 - stated%2)).
-		Offset(int((stated - 1) / 2)).
+		Limit(int(2-stated%2)).
+		Offset(int((stated-1)/2)).
 		Pluck("salary", &middle).Error
 	if err != nil {
 		return 0, fmt.Errorf("reading median salary: %w", err)

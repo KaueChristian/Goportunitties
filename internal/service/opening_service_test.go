@@ -25,6 +25,9 @@ type fakeRepo struct {
 	locations    []repository.LocationCount
 	maxSalary    int64
 	medianSalary int64
+	suggestions  []repository.Suggestion
+	lastTerm     string
+	lastLimit    int
 	aggregates   repository.Aggregates
 	monthly      []repository.MonthCount
 	months       int
@@ -70,6 +73,14 @@ func (f *fakeRepo) List(_ context.Context, filter repository.Filter) ([]model.Op
 		openings = append(openings, *opening)
 	}
 	return openings, f.total, nil
+}
+
+func (f *fakeRepo) Suggest(_ context.Context, term string, limit int) ([]repository.Suggestion, error) {
+	if f.err != nil {
+		return nil, f.err
+	}
+	f.lastTerm, f.lastLimit = term, limit
+	return f.suggestions, nil
 }
 
 func (f *fakeRepo) CountByRemote(_ context.Context, filter repository.Filter) (int64, int64, error) {
@@ -432,6 +443,80 @@ func TestStatsDerivesOnsiteAndKeepsTheSeries(t *testing.T) {
 	}
 	if repo.months != 9 {
 		t.Fatalf("asked for %d months, want 9", repo.months)
+	}
+}
+
+func TestSuggestIgnoresTermsTooShortToBeUseful(t *testing.T) {
+	repo := newFakeRepo()
+	repo.suggestions = []repository.Suggestion{{Value: "SRE", Kind: "role", Count: 1}}
+	svc := service.NewOpeningService(repo)
+
+	for _, term := range []string{"", " ", "g", "  g  "} {
+		got, err := svc.Suggest(ctx(), dto.SuggestOpeningsQuery{Search: term, Limit: 8})
+		if err != nil {
+			t.Fatalf("Suggest(%q): %v", term, err)
+		}
+		if len(got) != 0 {
+			t.Fatalf("Suggest(%q) returned %+v, want nothing — the database is never touched", term, got)
+		}
+		if repo.lastTerm != "" {
+			t.Fatalf("Suggest(%q) reached the repository with %q", term, repo.lastTerm)
+		}
+	}
+}
+
+func TestSuggestTrimsTheTermAndMapsTheResult(t *testing.T) {
+	repo := newFakeRepo()
+	repo.suggestions = []repository.Suggestion{
+		{Value: "Desenvolvedor Go", Kind: "role", Count: 3},
+		{Value: "Globex", Kind: "company", Count: 1},
+	}
+	svc := service.NewOpeningService(repo)
+
+	got, err := svc.Suggest(ctx(), dto.SuggestOpeningsQuery{Search: "  go  ", Limit: 5})
+	if err != nil {
+		t.Fatalf("Suggest: %v", err)
+	}
+
+	if repo.lastTerm != "go" || repo.lastLimit != 5 {
+		t.Fatalf("repository received %q with limit %d", repo.lastTerm, repo.lastLimit)
+	}
+	if len(got) != 2 || got[0].Value != "Desenvolvedor Go" || got[0].Kind != "role" || got[0].Count != 3 {
+		t.Fatalf("suggestions = %+v", got)
+	}
+}
+
+// An accented two-letter term is two runes, not four bytes.
+func TestSuggestCountsRunesNotBytes(t *testing.T) {
+	repo := newFakeRepo()
+	svc := service.NewOpeningService(repo)
+
+	if _, err := svc.Suggest(ctx(), dto.SuggestOpeningsQuery{Search: "çã", Limit: 8}); err != nil {
+		t.Fatalf("Suggest: %v", err)
+	}
+	if repo.lastTerm != "çã" {
+		t.Fatalf("term %q was rejected as too short", "çã")
+	}
+}
+
+func TestSuggestNormalizeClampsTheLimit(t *testing.T) {
+	tests := []struct {
+		given int
+		want  int
+	}{
+		{0, dto.DefaultSuggestionLimit},
+		{-3, dto.DefaultSuggestionLimit},
+		{5, 5},
+		{999, dto.MaxSuggestionLimit},
+	}
+
+	for _, tt := range tests {
+		query := dto.SuggestOpeningsQuery{Limit: tt.given}
+		query.Normalize()
+
+		if query.Limit != tt.want {
+			t.Fatalf("limit %d normalized to %d, want %d", tt.given, query.Limit, tt.want)
+		}
 	}
 }
 

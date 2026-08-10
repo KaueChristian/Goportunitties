@@ -107,6 +107,31 @@ a:hover {
 
 /* Keyframes live in keyframes.css, imported by each *.module.css that animates. */
 
+/*
+ * Cross-fade between light and dark.
+ *
+ * Switching the theme repaints every surface at once, and without a transition
+ * that lands as a hard flash. The attribute is set by useTheme only around the
+ * toggle and removed right after: making these transitions permanent would also
+ * slow every hover and focus state, which should stay instant.
+ *
+ * The universal selector plus !important is deliberate — it has to reach
+ * component styles that declare their own, narrower transitions.
+ */
+:root[data-theme-transition],
+:root[data-theme-transition] *,
+:root[data-theme-transition] *::before,
+:root[data-theme-transition] *::after {
+  transition:
+    background-color 320ms var(--ease-in-out),
+    border-color 320ms var(--ease-in-out),
+    color 320ms var(--ease-in-out),
+    fill 320ms var(--ease-in-out),
+    stroke 320ms var(--ease-in-out),
+    box-shadow 320ms var(--ease-in-out) !important;
+  transition-delay: 0s !important;
+}
+
 /* Motion is decoration — never a requirement for understanding the page. */
 @media (prefers-reduced-motion: reduce) {
   *,

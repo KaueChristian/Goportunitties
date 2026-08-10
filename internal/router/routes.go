@@ -19,6 +19,7 @@ func registerRoutes(engine *gin.Engine, openings *handler.OpeningHandler, health
 		v1.GET("/openings", openings.List)
 		v1.GET("/openings/facets", openings.Facets)
 		v1.GET("/openings/stats", openings.Stats)
+		v1.GET("/openings/suggestions", openings.Suggest)
 		v1.POST("/openings", openings.Create)
 
 		v1.GET("/openings/:id", openings.Show)

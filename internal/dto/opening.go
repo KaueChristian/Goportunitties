@@ -136,6 +136,39 @@ func NewOpeningResponseList(openings []model.Opening) []OpeningResponse {
 	return responses
 }
 
+// Suggestion limits for the autocomplete endpoint.
+const (
+	DefaultSuggestionLimit = 8
+	MaxSuggestionLimit     = 20
+	// Below two characters almost everything matches, which is noise rather
+	// than a suggestion.
+	MinSuggestionTerm = 2
+)
+
+// SuggestOpeningsQuery is the input of GET /openings/suggestions.
+type SuggestOpeningsQuery struct {
+	Search string `form:"search" binding:"max=120"`
+	Limit  int    `form:"limit"`
+}
+
+// Normalize clamps the limit into range.
+func (q *SuggestOpeningsQuery) Normalize() {
+	if q.Limit < 1 {
+		q.Limit = DefaultSuggestionLimit
+	}
+	if q.Limit > MaxSuggestionLimit {
+		q.Limit = MaxSuggestionLimit
+	}
+}
+
+// Suggestion is one autocomplete entry. Kind lets the interface label the row
+// as a role or a company instead of showing a bare string.
+type Suggestion struct {
+	Value string `json:"value"`
+	Kind  string `json:"kind"`
+	Count int64  `json:"count"`
+}
+
 // LocationCount is one entry of the location facet.
 type LocationCount struct {
 	Value string `json:"value"`

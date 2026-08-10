@@ -1,5 +1,6 @@
 import styles from './ResultsToolbar.module.css'
 import { Icon } from '../ui/Icon'
+import { Select, type SelectOption } from '../ui/Select'
 import type { CardLayout } from './OpeningCard'
 import type { SortOption } from './filters'
 
@@ -10,6 +11,13 @@ interface ResultsToolbarProps {
   onLayoutChange: (layout: CardLayout) => void
   onSortChange: (sort: SortOption) => void
 }
+
+const SORT_OPTIONS: SelectOption[] = [
+  { value: 'recent', label: 'Mais recentes' },
+  { value: 'salary-desc', label: 'Maior salário' },
+  { value: 'salary-asc', label: 'Menor salário' },
+  { value: 'role', label: 'Cargo (A–Z)' },
+]
 
 const LAYOUTS: { value: CardLayout; label: string; icon: 'grid' | 'list' }[] = [
   { value: 'grid', label: 'Ver em grade', icon: 'grid' },
@@ -45,16 +53,13 @@ export function ResultsToolbar({
           ))}
         </div>
 
-        <label className={styles.sort}>
-          <span className="sr-only">Ordenar vagas</span>
-          <select value={sort} onChange={(event) => onSortChange(event.target.value as SortOption)}>
-            <option value="recent">Mais recentes</option>
-            <option value="salary-desc">Maior salário</option>
-            <option value="salary-asc">Menor salário</option>
-            <option value="role">Cargo (A–Z)</option>
-          </select>
-          <Icon name="chevron-down" size={16} />
-        </label>
+        <Select
+          variant="boxed"
+          value={sort}
+          options={SORT_OPTIONS}
+          onChange={(value) => onSortChange(value as SortOption)}
+          label="Ordenar vagas"
+        />
       </div>
     </div>
   )

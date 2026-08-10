@@ -29,16 +29,18 @@ type ctxType = context.Context
 // stubService lets each test decide what the business layer answers, so the
 // handler is exercised on exactly one thing: turning that answer into HTTP.
 type stubService struct {
-	opening    *model.Opening
-	pagination dto.Pagination
-	facets     dto.OpeningFacets
-	stats      dto.OpeningStats
-	err        error
+	opening     *model.Opening
+	pagination  dto.Pagination
+	facets      dto.OpeningFacets
+	stats       dto.OpeningStats
+	suggestions []dto.Suggestion
+	err         error
 
-	lastQuery dto.ListOpeningsQuery
-	lastID    uint
-	lastReq   dto.OpeningRequest
-	lastPatch dto.PatchOpeningRequest
+	lastQuery   dto.ListOpeningsQuery
+	lastSuggest dto.SuggestOpeningsQuery
+	lastID      uint
+	lastReq     dto.OpeningRequest
+	lastPatch   dto.PatchOpeningRequest
 }
 
 func (s *stubService) Create(_ ctxType, req dto.OpeningRequest) (*model.Opening, error) {
@@ -65,6 +67,11 @@ func (s *stubService) List(_ ctxType, query dto.ListOpeningsQuery) ([]model.Open
 func (s *stubService) Facets(_ ctxType, query dto.ListOpeningsQuery) (dto.OpeningFacets, error) {
 	s.lastQuery = query
 	return s.facets, s.err
+}
+
+func (s *stubService) Suggest(_ ctxType, query dto.SuggestOpeningsQuery) ([]dto.Suggestion, error) {
+	s.lastSuggest = query
+	return s.suggestions, s.err
 }
 
 func (s *stubService) Stats(ctxType) (dto.OpeningStats, error) {
@@ -94,6 +101,7 @@ func newServer(svc service.OpeningService) *gin.Engine {
 	engine.GET("/openings", openings.List)
 	engine.GET("/openings/facets", openings.Facets)
 	engine.GET("/openings/stats", openings.Stats)
+	engine.GET("/openings/suggestions", openings.Suggest)
 	engine.POST("/openings", openings.Create)
 	engine.GET("/openings/:id", openings.Show)
 	engine.PUT("/openings/:id", openings.Replace)

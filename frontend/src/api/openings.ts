@@ -5,6 +5,7 @@ import type {
   OpeningPayload,
   OpeningStats,
   Pagination,
+  Suggestion,
 } from '../types/opening'
 
 /** Sort options the API accepts. `updated` powers the dashboard's activity feed. */
@@ -66,6 +67,14 @@ export const openingsApi = {
       `/openings/facets${toQueryString(toParams(query))}`,
     )
     return data
+  },
+
+  /** Roles and companies matching what the user typed, most frequent first. */
+  async suggest(search: string, limit?: number): Promise<Suggestion[]> {
+    const { data } = await api.get<Suggestion[]>(
+      `/openings/suggestions${toQueryString({ search: search.trim(), limit })}`,
+    )
+    return data ?? []
   },
 
   async stats(): Promise<OpeningStats> {

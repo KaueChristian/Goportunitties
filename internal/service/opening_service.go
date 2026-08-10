@@ -27,6 +27,7 @@ type OpeningService interface {
 	FindByID(ctx context.Context, id uint) (*model.Opening, error)
 	List(ctx context.Context, query dto.ListOpeningsQuery) ([]model.Opening, dto.Pagination, error)
 	Facets(ctx context.Context, query dto.ListOpeningsQuery) (dto.OpeningFacets, error)
+	Suggest(ctx context.Context, query dto.SuggestOpeningsQuery) ([]dto.Suggestion, error)
 	Stats(ctx context.Context) (dto.OpeningStats, error)
 	Replace(ctx context.Context, id uint, req dto.OpeningRequest) (*model.Opening, error)
 	Patch(ctx context.Context, id uint, req dto.PatchOpeningRequest) (*model.Opening, error)
@@ -108,6 +109,31 @@ func (s *openingService) Facets(ctx context.Context, query dto.ListOpeningsQuery
 		Locations:     entries,
 		SalaryCeiling: roundUpToThousand(ceiling),
 	}, nil
+}
+
+func (s *openingService) Suggest(ctx context.Context, query dto.SuggestOpeningsQuery) ([]dto.Suggestion, error) {
+	term := strings.TrimSpace(query.Search)
+
+	// A term this short matches nearly everything; answering with an empty list
+	// costs one comparison instead of a table scan per keystroke.
+	if len([]rune(term)) < dto.MinSuggestionTerm {
+		return []dto.Suggestion{}, nil
+	}
+
+	found, err := s.repo.Suggest(ctx, term, query.Limit)
+	if err != nil {
+		return nil, err
+	}
+
+	suggestions := make([]dto.Suggestion, 0, len(found))
+	for _, suggestion := range found {
+		suggestions = append(suggestions, dto.Suggestion{
+			Value: suggestion.Value,
+			Kind:  suggestion.Kind,
+			Count: suggestion.Count,
+		})
+	}
+	return suggestions, nil
 }
 
 func (s *openingService) Stats(ctx context.Context) (dto.OpeningStats, error) {

@@ -53,6 +53,16 @@ export interface OpeningFacets {
   salaryCeiling: number
 }
 
+/**
+ * Mirrors dto.Suggestion — one autocomplete entry. `kind` lets the list label
+ * the row as a role or a company instead of showing a bare string.
+ */
+export interface Suggestion {
+  value: string
+  kind: 'role' | 'company'
+  count: number
+}
+
 /** Mirrors dto.MonthCount — one bar of the dashboard chart, as YYYY-MM. */
 export interface MonthCount {
   month: string

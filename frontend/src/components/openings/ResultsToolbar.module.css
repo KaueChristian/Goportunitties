@@ -61,36 +61,6 @@
   color: var(--text-on-accent);
 }
 
-.sort {
-  position: relative;
-  display: flex;
-  align-items: center;
-}
-
-.sort select {
-  height: 42px;
-  padding: 0 var(--space-8) 0 var(--space-4);
-  appearance: none;
-  background-color: var(--surface-inset);
-  border: 1px solid transparent;
-  border-radius: var(--radius-md);
-  color: var(--text-primary);
-  font-size: var(--text-sm);
-  cursor: pointer;
-  transition: border-color var(--duration-fast) var(--ease-out);
-}
-
-.sort select:hover {
-  border-color: var(--color-accent);
-}
-
-.sort svg {
-  position: absolute;
-  right: var(--space-3);
-  color: var(--text-muted);
-  pointer-events: none;
-}
-
 @media (max-width: 560px) {
   .toolbar {
     padding: var(--space-3) var(--space-4);

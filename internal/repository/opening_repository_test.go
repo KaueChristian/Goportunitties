@@ -203,6 +203,129 @@ func TestListPagination(t *testing.T) {
 	}
 }
 
+func TestSuggest(t *testing.T) {
+	repo, _ := newRepo(t)
+	seed(t, repo, sample()...)
+	ctx := context.Background()
+
+	tests := []struct {
+		name  string
+		term  string
+		want  []repository.Suggestion
+		limit int
+	}{
+		{
+			name:  "matches a role",
+			term:  "sre",
+			limit: 8,
+			want:  []repository.Suggestion{{Value: "SRE", Kind: "role", Count: 1}},
+		},
+		{
+			name:  "matches a company",
+			term:  "globex",
+			limit: 8,
+			want:  []repository.Suggestion{{Value: "Globex", Kind: "company", Count: 1}},
+		},
+		{
+			name:  "is case insensitive",
+			term:  "INITECH",
+			limit: 8,
+			want:  []repository.Suggestion{{Value: "Initech", Kind: "company", Count: 1}},
+		},
+		{
+			name:  "matches in the middle of a word",
+			term:  "envolvedor",
+			limit: 8,
+			want: []repository.Suggestion{
+				{Value: "Desenvolvedor Go", Kind: "role", Count: 1},
+				{Value: "Desenvolvedor React", Kind: "role", Count: 1},
+			},
+		},
+		{name: "no match", term: "kubernetes", limit: 8, want: []repository.Suggestion{}},
+		{name: "empty term", term: "", limit: 8, want: []repository.Suggestion{}},
+		{name: "limit of zero", term: "sre", limit: 0, want: []repository.Suggestion{}},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got, err := repo.Suggest(ctx, tt.term, tt.limit)
+			if err != nil {
+				t.Fatalf("Suggest: %v", err)
+			}
+			if len(got) != len(tt.want) {
+				t.Fatalf("got %+v, want %+v", got, tt.want)
+			}
+			for i := range tt.want {
+				if got[i] != tt.want[i] {
+					t.Fatalf("entry %d = %+v, want %+v", i, got[i], tt.want[i])
+				}
+			}
+		})
+	}
+}
+
+// The same company on several openings is one suggestion, not one per row.
+func TestSuggestGroupsAndRanksByFrequency(t *testing.T) {
+	repo, _ := newRepo(t)
+	seed(t, repo,
+		model.Opening{Role: "Dev Go", Company: "Acme", Location: "Remoto", Remote: true, Link: "https://acme.com/1", Salary: 1},
+		model.Opening{Role: "Dev Rust", Company: "Acme", Location: "Remoto", Remote: true, Link: "https://acme.com/2", Salary: 2},
+		model.Opening{Role: "Dev Go", Company: "Acme", Location: "Remoto", Remote: true, Link: "https://acme.com/3", Salary: 3},
+		model.Opening{Role: "Dev Elixir", Company: "Acmezinha", Location: "Remoto", Remote: true, Link: "https://acmez.com/4", Salary: 4},
+	)
+
+	got, err := repo.Suggest(context.Background(), "acme", 8)
+	if err != nil {
+		t.Fatalf("Suggest: %v", err)
+	}
+
+	want := []repository.Suggestion{
+		{Value: "Acme", Kind: "company", Count: 3},
+		{Value: "Acmezinha", Kind: "company", Count: 1},
+	}
+	if len(got) != len(want) {
+		t.Fatalf("got %+v, want %+v", got, want)
+	}
+	for i := range want {
+		if got[i] != want[i] {
+			t.Fatalf("entry %d = %+v, want %+v — most frequent first", i, got[i], want[i])
+		}
+	}
+}
+
+func TestSuggestHonoursTheLimitAcrossBothColumns(t *testing.T) {
+	repo, _ := newRepo(t)
+	seed(t, repo, sample()...)
+
+	got, err := repo.Suggest(context.Background(), "e", 2)
+	if err != nil {
+		t.Fatalf("Suggest: %v", err)
+	}
+	// "e" matches roles and companies alike; the cap applies to the merged list.
+	if len(got) != 2 {
+		t.Fatalf("got %d suggestions, want 2", len(got))
+	}
+}
+
+// Raw SQL does not get GORM's soft-delete condition for free.
+func TestSuggestIgnoresDeletedOpenings(t *testing.T) {
+	repo, _ := newRepo(t)
+	ctx := context.Background()
+	stored := seed(t, repo, sample()...)
+
+	if err := repo.Delete(ctx, &stored[2]); err != nil { // SRE @ Initech
+		t.Fatalf("Delete: %v", err)
+	}
+
+	got, err := repo.Suggest(ctx, "initech", 8)
+	if err != nil {
+		t.Fatalf("Suggest: %v", err)
+	}
+	if len(got) != 0 {
+		t.Fatalf("a deleted opening still suggests: %+v", got)
+	}
+}
+
 func TestCountByRemoteIgnoresTheRemoteFilter(t *testing.T) {
 	repo, _ := newRepo(t)
 	seed(t, repo, sample()...)

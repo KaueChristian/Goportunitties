@@ -42,6 +42,24 @@ func (h *OpeningHandler) Facets(ctx *gin.Context) {
 	dto.SendSuccess(ctx, "opening-facets", facets)
 }
 
+// Suggest handles GET /openings/suggestions — the autocomplete for the search
+// box, drawn from the roles and companies actually on the board.
+func (h *OpeningHandler) Suggest(ctx *gin.Context) {
+	query := dto.SuggestOpeningsQuery{}
+	if !bindQuery(ctx, &query) {
+		return
+	}
+	query.Normalize()
+
+	suggestions, err := h.service.Suggest(ctx.Request.Context(), query)
+	if err != nil {
+		h.fail(ctx, "suggest-openings", err)
+		return
+	}
+
+	dto.SendSuccess(ctx, "suggest-openings", suggestions)
+}
+
 // Stats handles GET /openings/stats — whole-index aggregates for the dashboard.
 func (h *OpeningHandler) Stats(ctx *gin.Context) {
 	stats, err := h.service.Stats(ctx.Request.Context())
