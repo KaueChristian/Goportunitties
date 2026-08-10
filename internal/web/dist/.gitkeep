@@ -1,0 +1,1 @@
+Copied into the build output so //go:embed all:dist always has a file to match.
