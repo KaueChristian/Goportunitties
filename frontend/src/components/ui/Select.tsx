@@ -1,6 +1,8 @@
 import { useEffect, useId, useRef, useState, type KeyboardEvent, type ReactNode } from 'react'
+import { createPortal } from 'react-dom'
 import styles from './Select.module.css'
 import { Icon } from './Icon'
+import { useAnchoredPosition } from '../../hooks/useAnchoredPosition'
 
 export interface SelectOption {
   value: string
@@ -52,6 +54,8 @@ export function Select({
   const [open, setOpen] = useState(false)
   const [active, setActive] = useState(0)
 
+  const position = useAnchoredPosition(rootRef, open)
+
   const selectedIndex = Math.max(
     0,
     options.findIndex((option) => option.value === value),
@@ -64,7 +68,11 @@ export function Select({
     if (!open) return
 
     const onPointerDown = (event: PointerEvent) => {
-      if (!rootRef.current?.contains(event.target as Node)) setOpen(false)
+      const target = event.target as Node
+      // The list lives in a portal, so it is not inside the root any more —
+      // both have to count as "inside" for the click-away check.
+      if (rootRef.current?.contains(target) || listRef.current?.contains(target)) return
+      setOpen(false)
     }
 
     document.addEventListener('pointerdown', onPointerDown)
@@ -166,31 +174,40 @@ export function Select({
         <Icon name="chevron-down" size={16} className={open ? styles.chevronOpen : styles.chevron} />
       </button>
 
-      {open && (
-        <ul ref={listRef} id={`${id}-list`} className={styles.list} role="listbox" aria-label={label}>
-          {options.map((option, index) => (
-            <li
-              key={option.value}
-              id={`${id}-option-${index}`}
-              data-index={index}
-              className={`${styles.option} ${index === active ? styles.optionActive : ''}`}
-              role="option"
-              aria-selected={option.value === value}
-              // pointerdown, not click: the outside-click handler runs first
-              // otherwise and the popup closes before the choice registers.
-              onPointerDown={(event) => {
-                event.preventDefault()
-                choose(index)
-              }}
-              onPointerEnter={() => setActive(index)}
-            >
-              <span className={styles.optionLabel}>{option.label}</span>
-              {option.count !== undefined && <span className={styles.count}>{option.count}</span>}
-              {option.value === value && <Icon name="check" size={15} className={styles.check} />}
-            </li>
-          ))}
-        </ul>
-      )}
+      {open &&
+        createPortal(
+          <ul
+            ref={listRef}
+            id={`${id}-list`}
+            className={styles.list}
+            style={position}
+            role="listbox"
+            aria-label={label}
+          >
+            {options.map((option, index) => (
+              <li
+                key={option.value}
+                id={`${id}-option-${index}`}
+                data-index={index}
+                className={`${styles.option} ${index === active ? styles.optionActive : ''}`}
+                role="option"
+                aria-selected={option.value === value}
+                // pointerdown, not click: the outside-click handler runs first
+                // otherwise and the popup closes before the choice registers.
+                onPointerDown={(event) => {
+                  event.preventDefault()
+                  choose(index)
+                }}
+                onPointerEnter={() => setActive(index)}
+              >
+                <span className={styles.optionLabel}>{option.label}</span>
+                {option.count !== undefined && <span className={styles.count}>{option.count}</span>}
+                {option.value === value && <Icon name="check" size={15} className={styles.check} />}
+              </li>
+            ))}
+          </ul>,
+          document.body,
+        )}
     </div>
   )
 }

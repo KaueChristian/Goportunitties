@@ -1,7 +1,9 @@
 import { useEffect, useId, useRef, useState, type FormEvent, type KeyboardEvent } from 'react'
+import { createPortal } from 'react-dom'
 import styles from './SearchForm.module.css'
 import { Icon } from '../ui/Icon'
 import { Select, type SelectOption } from '../ui/Select'
+import { useAnchoredPosition } from '../../hooks/useAnchoredPosition'
 import { useSuggestions } from '../../hooks/useSuggestions'
 import type { Filters, RemoteFilter } from './filters'
 
@@ -22,9 +24,12 @@ const REMOTE_OPTIONS: SelectOption[] = [
 export function SearchForm({ filters, locations, onSubmit, onChange }: SearchFormProps) {
   const id = useId()
   const fieldRef = useRef<HTMLDivElement>(null)
+  const listRef = useRef<HTMLUListElement>(null)
 
   const [suggestionsOpen, setSuggestionsOpen] = useState(false)
   const [active, setActive] = useState(-1)
+
+  const position = useAnchoredPosition(fieldRef, suggestionsOpen)
 
   const suggestions = useSuggestions(filters.search, suggestionsOpen)
 
@@ -42,7 +47,10 @@ export function SearchForm({ filters, locations, onSubmit, onChange }: SearchFor
     if (!suggestionsOpen) return
 
     const onPointerDown = (event: PointerEvent) => {
-      if (!fieldRef.current?.contains(event.target as Node)) setSuggestionsOpen(false)
+      const target = event.target as Node
+      // The list is portalled out of the field, so both count as "inside".
+      if (fieldRef.current?.contains(target) || listRef.current?.contains(target)) return
+      setSuggestionsOpen(false)
     }
 
     document.addEventListener('pointerdown', onPointerDown)
@@ -112,32 +120,42 @@ export function SearchForm({ filters, locations, onSubmit, onChange }: SearchFor
           onKeyDown={onSearchKeyDown}
         />
 
-        {suggestionsOpen && suggestions.length > 0 && (
-          <ul id={listId} className={styles.suggestions} role="listbox" aria-label="Sugestões de busca">
-            {suggestions.map((suggestion, index) => (
-              <li
-                key={`${suggestion.kind}-${suggestion.value}`}
-                id={`${listId}-${index}`}
-                className={`${styles.suggestion} ${index === active ? styles.suggestionActive : ''}`}
-                role="option"
-                aria-selected={index === active}
-                // pointerdown, not click: the input's blur would otherwise close
-                // the list before the choice registers.
-                onPointerDown={(event) => {
-                  event.preventDefault()
-                  apply(suggestion.value)
-                }}
-                onPointerEnter={() => setActive(index)}
-              >
-                <Icon name={suggestion.kind === 'company' ? 'building' : 'briefcase'} size={15} />
-                <span className={styles.suggestionValue}>{suggestion.value}</span>
-                <span className={styles.suggestionCount}>
-                  {suggestion.count} {suggestion.count === 1 ? 'vaga' : 'vagas'}
-                </span>
-              </li>
-            ))}
-          </ul>
-        )}
+        {suggestionsOpen &&
+          suggestions.length > 0 &&
+          createPortal(
+            <ul
+              ref={listRef}
+              id={listId}
+              className={styles.suggestions}
+              style={position}
+              role="listbox"
+              aria-label="Sugestões de busca"
+            >
+              {suggestions.map((suggestion, index) => (
+                <li
+                  key={`${suggestion.kind}-${suggestion.value}`}
+                  id={`${listId}-${index}`}
+                  className={`${styles.suggestion} ${index === active ? styles.suggestionActive : ''}`}
+                  role="option"
+                  aria-selected={index === active}
+                  // pointerdown, not click: the input's blur would otherwise
+                  // close the list before the choice registers.
+                  onPointerDown={(event) => {
+                    event.preventDefault()
+                    apply(suggestion.value)
+                  }}
+                  onPointerEnter={() => setActive(index)}
+                >
+                  <Icon name={suggestion.kind === 'company' ? 'building' : 'briefcase'} size={15} />
+                  <span className={styles.suggestionValue}>{suggestion.value}</span>
+                  <span className={styles.suggestionCount}>
+                    {suggestion.count} {suggestion.count === 1 ? 'vaga' : 'vagas'}
+                  </span>
+                </li>
+              ))}
+            </ul>,
+            document.body,
+          )}
       </div>
 
       <Select

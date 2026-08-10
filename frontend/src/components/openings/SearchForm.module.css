@@ -67,13 +67,12 @@
   position: relative;
 }
 
+/*
+ * Rendered in a portal on <body>: position, size and flip come from
+ * useAnchoredPosition, so the hero's overflow cannot clip it.
+ */
 .suggestions {
-  position: absolute;
-  top: calc(100% + var(--space-3));
-  left: 0;
-  z-index: 40;
-  width: max(100%, 20rem);
-  max-height: 19rem;
+  z-index: 90;
   overflow-y: auto;
   margin: 0;
   padding: var(--space-2);

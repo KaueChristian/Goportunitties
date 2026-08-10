@@ -67,14 +67,12 @@
 
 /* ---- Popup ---- */
 
+/*
+ * Rendered in a portal on <body>: position, size and flip come from
+ * useAnchoredPosition, so no ancestor's overflow can clip the list.
+ */
 .list {
-  position: absolute;
-  top: calc(100% + var(--space-2));
-  left: 0;
-  z-index: 40;
-  min-width: 100%;
-  /* Long location lists scroll instead of running off the viewport. */
-  max-height: 17rem;
+  z-index: 90;
   overflow-y: auto;
   margin: 0;
   padding: var(--space-2);
