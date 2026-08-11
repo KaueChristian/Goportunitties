@@ -2,6 +2,7 @@ import styles from './FilterSidebar.module.css'
 import { Icon } from '../ui/Icon'
 import { formatSalary } from '../../utils/format'
 import { DEFAULT_FILTERS, isFiltered, type Filters, type RemoteFilter } from './filters'
+import { sourceLabel } from './sources'
 import type { OpeningFacets } from '../../types/opening'
 
 interface FilterSidebarProps {
@@ -68,6 +69,56 @@ export function FilterSidebar({ filters, counts, onChange }: FilterSidebarProps)
           <span>{formatSalary(counts.salaryCeiling)}</span>
         </div>
       </section>
+
+      {/*
+       * Only worth a control once more than one source is on record: with an
+       * index nobody has ingested into yet, every opening is "Publicada aqui"
+       * and the filter would be a row that can only ever mean "all".
+       */}
+      {counts.sources.length > 1 && (
+        <section className={styles.group}>
+          <h3 className={styles.groupTitle}>Origem</h3>
+          <ul className={styles.options}>
+            <li>
+              <label className={styles.option}>
+                <input
+                  className={styles.input}
+                  type="radio"
+                  name="origem"
+                  checked={filters.source === 'all'}
+                  onChange={() => patch({ source: 'all' })}
+                />
+                <span className={styles.box} aria-hidden="true">
+                  <Icon name="check" size={12} />
+                </span>
+                <span className={styles.optionLabel}>Todas as origens</span>
+                <span className={styles.count}>
+                  {counts.sources.reduce((sum, item) => sum + item.count, 0)}
+                </span>
+              </label>
+            </li>
+
+            {counts.sources.map((source) => (
+              <li key={source.value}>
+                <label className={styles.option}>
+                  <input
+                    className={styles.input}
+                    type="radio"
+                    name="origem"
+                    checked={filters.source === source.value}
+                    onChange={() => patch({ source: source.value })}
+                  />
+                  <span className={styles.box} aria-hidden="true">
+                    <Icon name="check" size={12} />
+                  </span>
+                  <span className={styles.optionLabel}>{sourceLabel(source.value)}</span>
+                  <span className={styles.count}>{source.count}</span>
+                </label>
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
 
       <section className={styles.group}>
         <h3 className={styles.groupTitle}>Localidade</h3>

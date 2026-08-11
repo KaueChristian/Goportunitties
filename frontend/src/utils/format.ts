@@ -23,6 +23,17 @@ export function formatSalary(value: number): string {
   return currency.format(value)
 }
 
+/**
+ * What a card shows in place of a figure.
+ *
+ * Zero means "a combinar", not "pays nothing" — ingested openings arrive that
+ * way, because the boards publish salaries in units this application does not
+ * store. Rendering R$ 0 would state something the source never said.
+ */
+export function formatSalaryLabel(value: number): string {
+  return value > 0 ? currency.format(value) : 'A combinar'
+}
+
 /** Compact form for stat tiles, where the digits are large and space is tight. */
 export function formatSalaryCompact(value: number): string {
   return compactCurrency.format(value)

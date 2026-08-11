@@ -15,6 +15,7 @@ export type ListSort = 'recent' | 'salary-desc' | 'salary-asc' | 'role' | 'updat
 export interface OpeningsQuery {
   search?: string
   location?: string
+  source?: string
   remote?: boolean
   minSalary?: number
   sort?: ListSort
@@ -33,6 +34,7 @@ function toParams(query: OpeningsQuery): QueryParams {
     search: query.search?.trim() || undefined,
     // 'all' is how the UI spells "no filter" — it never goes on the wire.
     location: query.location && query.location !== 'all' ? query.location : undefined,
+    source: query.source && query.source !== 'all' ? query.source : undefined,
     remote: query.remote,
     minSalary: query.minSalary && query.minSalary > 0 ? query.minSalary : undefined,
     sort: query.sort,

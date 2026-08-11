@@ -93,6 +93,11 @@ func (s *openingService) Facets(ctx context.Context, query dto.ListOpeningsQuery
 		return dto.OpeningFacets{}, err
 	}
 
+	sources, err := s.repo.CountBySource(ctx, filter)
+	if err != nil {
+		return dto.OpeningFacets{}, err
+	}
+
 	ceiling, err := s.repo.MaxSalary(ctx)
 	if err != nil {
 		return dto.OpeningFacets{}, err
@@ -103,6 +108,11 @@ func (s *openingService) Facets(ctx context.Context, query dto.ListOpeningsQuery
 		entries = append(entries, dto.LocationCount{Value: location.Location, Count: location.Count})
 	}
 
+	origins := make([]dto.SourceCount, 0, len(sources))
+	for _, source := range sources {
+		origins = append(origins, dto.SourceCount{Value: source.Source, Count: source.Count})
+	}
+
 	return dto.OpeningFacets{
 		Remote: dto.RemoteCounts{
 			All:    remote + onsite,
@@ -110,6 +120,7 @@ func (s *openingService) Facets(ctx context.Context, query dto.ListOpeningsQuery
 			Onsite: onsite,
 		},
 		Locations:     entries,
+		Sources:       origins,
 		SalaryCeiling: roundUpToThousand(ceiling),
 	}, nil
 }
@@ -243,14 +254,20 @@ func applyRequest(opening *model.Opening, req dto.OpeningRequest) {
 }
 
 func toFilter(query dto.ListOpeningsQuery) repository.Filter {
+	// "all" is how the interface spells "no filter"; it never reaches SQL.
 	location := query.Location
 	if location == "all" {
 		location = ""
+	}
+	source := query.Source
+	if source == "all" {
+		source = ""
 	}
 
 	return repository.Filter{
 		Search:    strings.TrimSpace(query.Search),
 		Location:  location,
+		Source:    source,
 		Remote:    query.Remote,
 		MinSalary: query.MinSalary,
 		Sort:      query.Sort,

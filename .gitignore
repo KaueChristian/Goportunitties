@@ -4,6 +4,7 @@
 *.so
 *.dylib
 /goportunitties
+/goportunitties-worker
 
 # test binary
 *.test

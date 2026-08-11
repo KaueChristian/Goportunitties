@@ -23,6 +23,7 @@ type fakeRepo struct {
 	remote       int64
 	onsite       int64
 	locations    []repository.LocationCount
+	sources      []repository.SourceCount
 	maxSalary    int64
 	medianSalary int64
 	suggestions  []repository.Suggestion
@@ -106,6 +107,14 @@ func (f *fakeRepo) CountByLocation(_ context.Context, filter repository.Filter) 
 	}
 	f.lastFilter = filter
 	return f.locations, nil
+}
+
+func (f *fakeRepo) CountBySource(_ context.Context, filter repository.Filter) ([]repository.SourceCount, error) {
+	if f.err != nil {
+		return nil, f.err
+	}
+	f.lastFilter = filter
+	return f.sources, nil
 }
 
 func (f *fakeRepo) MaxSalary(context.Context) (int64, error) {

@@ -17,6 +17,22 @@ type Settings struct {
 	ShutdownTimeout time.Duration
 	DefaultPageSize int
 	MaxPageSize     int
+	Ingestion       IngestionSettings
+}
+
+// IngestionSettings configures the worker. The API binary ignores all of it.
+type IngestionSettings struct {
+	// Sources are the board slugs to read, in the order they are configured.
+	Sources []string
+	// Interval between runs. Zero means run once and exit, which is what a cron
+	// job or a manual invocation wants.
+	Interval time.Duration
+	// Timeout bounds a single source's fetch.
+	Timeout time.Duration
+	// MaxPerSource caps how many openings one board contributes per run.
+	MaxPerSource int
+	// UserAgent identifies this project to the boards it reads.
+	UserAgent string
 }
 
 // IsProduction reports whether the app should behave as a deployed instance
@@ -39,7 +55,33 @@ func Load() Settings {
 		ShutdownTimeout: getDuration("SHUTDOWN_TIMEOUT", 10*time.Second),
 		DefaultPageSize: getInt("DEFAULT_PAGE_SIZE", 12),
 		MaxPageSize:     getInt("MAX_PAGE_SIZE", 100),
+		Ingestion: IngestionSettings{
+			Sources: splitAndTrim(getEnv("INGESTION_SOURCES", "remoteok,remotive")),
+			// Zero is meaningful here — "run once and exit" — so it cannot use
+			// getDuration, which treats zero as "unset, take the default".
+			Interval:     getIntervalOrOnce("INGESTION_INTERVAL", 6*time.Hour),
+			Timeout:      getDuration("INGESTION_TIMEOUT", 30*time.Second),
+			MaxPerSource: getInt("INGESTION_MAX_PER_SOURCE", 100),
+			UserAgent:    getEnv("INGESTION_USER_AGENT", ""),
+		},
 	}
+}
+
+// getIntervalOrOnce parses a schedule where an explicit zero is a valid answer.
+func getIntervalOrOnce(key string, fallback time.Duration) time.Duration {
+	raw := getEnv(key, "")
+	if raw == "" {
+		return fallback
+	}
+	if raw == "0" {
+		return 0
+	}
+
+	value, err := time.ParseDuration(raw)
+	if err != nil || value < 0 {
+		return fallback
+	}
+	return value
 }
 
 func getEnv(key, fallback string) string {

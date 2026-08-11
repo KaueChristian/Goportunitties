@@ -18,6 +18,7 @@ import (
 type Filter struct {
 	Search    string
 	Location  string
+	Source    string
 	Remote    *bool
 	MinSalary int64
 	Sort      string
@@ -33,12 +34,19 @@ const (
 	facetNone     facet = ""
 	facetRemote   facet = "remote"
 	facetLocation facet = "location"
+	facetSource   facet = "source"
 )
 
 // LocationCount is how many openings share one location.
 type LocationCount struct {
 	Location string
 	Count    int64
+}
+
+// SourceCount is how many openings came from one source.
+type SourceCount struct {
+	Source string
+	Count  int64
 }
 
 // MonthCount is how many openings were published in one YYYY-MM month.
@@ -91,6 +99,7 @@ type OpeningRepository interface {
 	Suggest(ctx context.Context, term string, limit int) ([]Suggestion, error)
 	CountByRemote(ctx context.Context, filter Filter) (remote, onsite int64, err error)
 	CountByLocation(ctx context.Context, filter Filter) ([]LocationCount, error)
+	CountBySource(ctx context.Context, filter Filter) ([]SourceCount, error)
 	MaxSalary(ctx context.Context) (int64, error)
 	MedianSalary(ctx context.Context) (int64, error)
 	Aggregates(ctx context.Context) (Aggregates, error)
@@ -282,6 +291,20 @@ func (r *gormOpeningRepository) CountByLocation(ctx context.Context, filter Filt
 	return counts, nil
 }
 
+func (r *gormOpeningRepository) CountBySource(ctx context.Context, filter Filter) ([]SourceCount, error) {
+	counts := []SourceCount{}
+
+	err := r.query(ctx, filter, facetSource).
+		Select("source, COUNT(*) AS count").
+		Group("source").
+		Order("count DESC, source ASC").
+		Scan(&counts).Error
+	if err != nil {
+		return nil, fmt.Errorf("counting openings by source: %w", err)
+	}
+	return counts, nil
+}
+
 func (r *gormOpeningRepository) MaxSalary(ctx context.Context) (int64, error) {
 	var max int64
 	err := r.db.WithContext(ctx).
@@ -403,6 +426,9 @@ func (r *gormOpeningRepository) query(ctx context.Context, filter Filter, except
 	}
 	if except != facetLocation && filter.Location != "" {
 		query = query.Where("location = ?", filter.Location)
+	}
+	if except != facetSource && filter.Source != "" {
+		query = query.Where("source = ?", filter.Source)
 	}
 	if except != facetRemote && filter.Remote != nil {
 		query = query.Where("remote = ?", *filter.Remote)

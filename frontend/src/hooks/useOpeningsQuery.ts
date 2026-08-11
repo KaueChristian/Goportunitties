@@ -8,6 +8,7 @@ const EMPTY_PAGINATION: Pagination = { page: 1, pageSize: 0, total: 0, totalPage
 const EMPTY_FACETS: OpeningFacets = {
   remote: { all: 0, remote: 0, onsite: 0 },
   locations: [],
+  sources: [],
   salaryCeiling: 1000,
 }
 

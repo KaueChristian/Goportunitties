@@ -186,6 +186,14 @@
   display: inline-flex;
 }
 
+/* Provenance is context, not a headline: it reads quieter than the rest. */
+.source {
+  display: inline-flex;
+  color: var(--text-muted);
+  font-variant: all-small-caps;
+  letter-spacing: 0.03em;
+}
+
 /* ---- Bottom: salary and apply ---- */
 
 .bottom {

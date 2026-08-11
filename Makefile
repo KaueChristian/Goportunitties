@@ -1,4 +1,4 @@
-.PHONY: help dev api web build test test-go test-web lint fmt cover docker clean
+.PHONY: help dev api worker ingest web build test test-go test-web lint fmt cover docker clean
 
 VERSION ?= $(shell git rev-parse --short HEAD 2>/dev/null || echo dev)
 BINARY  ?= goportunitties
@@ -9,12 +9,19 @@ help: ## Show this help
 api: ## Run the API on :8080
 	go run ./cmd/api
 
+worker: ## Run the ingestion worker on its configured schedule
+	go run ./cmd/worker
+
+ingest: ## Run one ingestion pass and exit
+	INGESTION_INTERVAL=0 go run ./cmd/worker
+
 web: ## Run the Vite dev server on :5173
 	cd frontend && npm run dev
 
 build: ## Build the single binary with the frontend embedded
 	cd frontend && npm ci && npm run build
 	go build -trimpath -ldflags "-s -w -X main.version=$(VERSION)" -o $(BINARY) ./cmd/api
+	go build -trimpath -ldflags "-s -w -X main.version=$(VERSION)" -o $(BINARY)-worker ./cmd/worker
 
 test: test-go test-web ## Run every test
 
@@ -41,5 +48,5 @@ docker: ## Build and start the container
 	docker compose up --build
 
 clean: ## Remove build artefacts
-	rm -f $(BINARY) coverage.out coverage.html
+	rm -f $(BINARY) $(BINARY)-worker coverage.out coverage.html
 	rm -rf internal/web/dist/assets internal/web/dist/index.html

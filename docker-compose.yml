@@ -16,5 +16,24 @@ services:
       - goportunitties-data:/data
     restart: unless-stopped
 
+  # Shares the image and the volume with the API: same schema, same database
+  # file, different entrypoint.
+  worker:
+    build:
+      context: .
+      args:
+        VERSION: ${VERSION:-dev}
+    entrypoint: ['/goportunitties-worker']
+    environment:
+      APP_ENV: production
+      INGESTION_SOURCES: ${INGESTION_SOURCES:-remoteok,remotive}
+      INGESTION_INTERVAL: ${INGESTION_INTERVAL:-6h}
+      INGESTION_MAX_PER_SOURCE: ${INGESTION_MAX_PER_SOURCE:-100}
+    volumes:
+      - goportunitties-data:/data
+    depends_on:
+      - api
+    restart: unless-stopped
+
 volumes:
   goportunitties-data:

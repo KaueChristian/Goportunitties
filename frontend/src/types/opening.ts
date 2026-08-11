@@ -52,6 +52,7 @@ export interface LocationCount {
 export interface OpeningFacets {
   remote: RemoteCounts
   locations: LocationCount[]
+  sources: LocationCount[]
   salaryCeiling: number
 }
 

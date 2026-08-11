@@ -10,6 +10,8 @@ export type SortOption = 'recent' | 'salary-desc' | 'salary-asc' | 'role'
 export interface Filters {
   search: string
   location: string
+  /** A source slug, or 'all'. */
+  source: string
   remote: RemoteFilter
   sort: SortOption
   minSalary: number
@@ -18,6 +20,7 @@ export interface Filters {
 export const DEFAULT_FILTERS: Filters = {
   search: '',
   location: 'all',
+  source: 'all',
   remote: 'all',
   sort: 'recent',
   minSalary: 0,
@@ -28,6 +31,7 @@ export function isFiltered(filters: Filters): boolean {
   return (
     filters.search !== '' ||
     filters.location !== 'all' ||
+    filters.source !== 'all' ||
     filters.remote !== 'all' ||
     filters.minSalary > 0
   )
@@ -45,6 +49,7 @@ export function toQuery(filters: Filters, page = 1, pageSize?: number): Openings
   return {
     search: filters.search,
     location: filters.location,
+    source: filters.source,
     remote: toRemote(filters.remote),
     minSalary: filters.minSalary,
     sort: filters.sort,
@@ -62,6 +67,7 @@ export function sameResultSet(a: Filters, b: Filters): boolean {
   return (
     a.search === b.search &&
     a.location === b.location &&
+    a.source === b.source &&
     a.remote === b.remote &&
     a.minSalary === b.minSalary
   )

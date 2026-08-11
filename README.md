@@ -20,7 +20,8 @@ próprio, com o seu próprio `package.json` e build — por isso vive numa pasta
 irmã, e não espalhado pela raiz.
 
 ```
-cmd/            binários (hoje só a API; o worker de ingestão entra aqui)
+cmd/api/        o servidor HTTP
+cmd/worker/     o worker de ingestão
 internal/       o código do servidor, uma pasta por camada
 frontend/       a aplicação React
 docs/           coleção do Postman
@@ -46,6 +47,7 @@ internal/
   handler/          HTTP: lê a requisição, chama o service, mapeia o resultado no status
   middleware/       CORS, request ID e log de acesso
   router/           registro das rotas e fallback da SPA
+  ingestion/        leitura dos portais de vagas (uma fonte por arquivo)
   web/              frontend compilado, embutido no binário
 ```
 
@@ -102,6 +104,18 @@ make build && ./goportunitties
 
 Abra <http://localhost:8080> — a mesma porta serve a API e a interface.
 
+### Ingestão
+
+```bash
+make ingest
+```
+
+Roda uma passada e sai. Para deixá-lo rodando na periodicidade configurada:
+
+```bash
+go run ./cmd/worker
+```
+
 ### Docker
 
 ```bash
@@ -123,7 +137,8 @@ make test
 | `service` | `go test` + repositório fake | regras de negócio sem tocar no banco |
 | `handler` | `go test` + `httptest` | status, validação e o que não pode vazar num 500 |
 | `router` | `go test` + `httptest` | o contrato inteiro ponta a ponta, incluindo CORS e fallback da SPA |
-| `frontend` | Vitest + Testing Library | cliente HTTP, tradução de filtros, paginação e o formulário |
+| `ingestion` | `go test` + `httptest` | mapeamento de cada portal, concorrência, timeout e falha isolada |
+| `frontend` | Vitest + Testing Library | cliente HTTP, tradução de filtros, paginação, procedência e o formulário |
 
 ## Variáveis de ambiente
 
@@ -138,6 +153,11 @@ Todas têm valor padrão — o projeto roda sem configurar nenhuma.
 | `SHUTDOWN_TIMEOUT` | `10s` | Tempo dado às requisições em andamento no encerramento |
 | `DEFAULT_PAGE_SIZE` | `12` | Tamanho de página quando o cliente não pede outro |
 | `MAX_PAGE_SIZE` | `100` | Teto do tamanho de página |
+| `INGESTION_SOURCES` | `remoteok,remotive` | Portais a ler, separados por vírgula |
+| `INGESTION_INTERVAL` | `6h` | Intervalo entre passadas; `0` roda uma vez e sai |
+| `INGESTION_TIMEOUT` | `30s` | Tempo máximo por portal |
+| `INGESTION_MAX_PER_SOURCE` | `100` | Teto de vagas que um portal contribui por passada |
+| `INGESTION_USER_AGENT` | identificação do projeto | User-Agent enviado aos portais |
 
 No frontend, `VITE_API_URL` sobrescreve a URL da API caso o front seja
 publicado separadamente do backend.
@@ -166,6 +186,7 @@ Fora do versionamento: `GET /healthz` (o processo está vivo) e `GET /readyz`
 |---|---|---|
 | `search` | texto (cargo ou empresa) | — |
 | `location` | localidade exata | todas |
+| `source` | `manual` ou o slug de um portal | todas |
 | `remote` | `true` / `false` | ambas |
 | `minSalary` | inteiro ≥ 0 | `0` |
 | `sort` | `recent`, `salary-desc`, `salary-asc`, `role`, `updated` | `recent` |
@@ -226,10 +247,39 @@ do backend (e exibindo os erros que só o servidor consegue julgar), confirmaç�
 de exclusão, estados de carregamento e vazio, notificações, tema claro/escuro e
 layout responsivo.
 
+## Ingestão
+
+O worker lê portais públicos e alimenta o índice sozinho. Cada portal é um
+arquivo em `internal/ingestion/` que implementa uma interface de três métodos;
+o orquestrador não conhece portal nenhum.
+
+Os portais são consultados em paralelo — é I/O contra serviços independentes —
+mas a escrita passa por um funil único, porque o SQLite serializa escritores de
+qualquer forma e um segundo só trocaria paralelismo por disputa de lock. Cada
+lote vai numa transação própria: um portal que falha no meio não deixa nada
+para trás.
+
+Rodar duas vezes não duplica nada. A chave `(source, external_id)` faz a
+segunda passada atualizar as linhas em vez de inseri-las, e disso decorrem duas
+garantias: a ingestão não alcança vaga cadastrada à mão, e vaga que você
+excluiu não volta.
+
+### Uma limitação conhecida
+
+Vagas importadas entram como **"a combinar"**. Os portais publicam salário em
+dólar por ano ou como texto livre (`"$50k - $70k"`, `"competitive"`), e esta
+aplicação guarda um inteiro em reais por mês. Converter exigiria inventar
+câmbio e jornada, e o número inventado ficaria indistinguível dos reais nas
+estatísticas. Por isso a mediana e a média já ignoram zeros.
+
+Resolver isso de verdade pede `currency` e `period` no modelo — a mudança
+atravessa DTO, filtro de salário mínimo, facetas e formatação no frontend, e
+por isso ficou de fora daqui.
+
 ## Próximo passo
 
-O projeto está preparado para deixar de ser um CRUD e virar um agregador: um
-worker concorrente que busca vagas em fontes públicas, normaliza, deduplica e
-alimenta o índice sozinho. A paginação, os índices do banco, o WAL e o
-`context.Context` propagado existem para que essa etapa não precise reescrever
-o que já está aqui.
+Com o índice recebendo milhares de vagas, dois pontos passam a pesar: a busca
+usa `LIKE '%termo%'`, que não usa índice, e a faceta de localidade lista todos
+os valores distintos — o que era razoável num índice curado e deixa de ser com
+dados importados. FTS5 resolve o primeiro; limitar a faceta às localidades mais
+frequentes resolve o segundo.

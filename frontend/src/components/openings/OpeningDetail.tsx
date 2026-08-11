@@ -3,7 +3,8 @@ import { Badge } from '../ui/Badge'
 import { Button } from '../ui/Button'
 import { Icon } from '../ui/Icon'
 import type { Opening } from '../../types/opening'
-import { avatarColor, formatDate, formatSalary, initialsOf } from '../../utils/format'
+import { avatarColor, formatDate, formatSalaryLabel, initialsOf } from '../../utils/format'
+import { isEditable, isManual, sourceLabel } from './sources'
 
 interface OpeningDetailProps {
   opening: Opening
@@ -37,7 +38,7 @@ export function OpeningDetail({ opening, onEdit, onDelete, onClose }: OpeningDet
             </Badge>
           )}
           <Badge tone="salary" icon={<Icon name="salary" size={13} />}>
-            {formatSalary(opening.salary)}
+            {formatSalaryLabel(opening.salary)}
           </Badge>
         </div>
       </header>
@@ -55,7 +56,14 @@ export function OpeningDetail({ opening, onEdit, onDelete, onClose }: OpeningDet
             <Icon name="salary" size={15} />
             Remuneração
           </dt>
-          <dd>{formatSalary(opening.salary)}</dd>
+          <dd>{formatSalaryLabel(opening.salary)}</dd>
+        </div>
+        <div className={styles.fact}>
+          <dt>
+            <Icon name="external" size={15} />
+            Origem
+          </dt>
+          <dd>{isManual(opening) ? 'Publicada aqui' : sourceLabel(opening.source)}</dd>
         </div>
         <div className={styles.fact}>
           <dt>
@@ -87,9 +95,11 @@ export function OpeningDetail({ opening, onEdit, onDelete, onClose }: OpeningDet
         </a>
 
         <div className={styles.secondary}>
-          <Button size="sm" icon={<Icon name="edit" size={15} />} onClick={() => onEdit(opening)}>
-            Editar
-          </Button>
+          {isEditable(opening) && (
+            <Button size="sm" icon={<Icon name="edit" size={15} />} onClick={() => onEdit(opening)}>
+              Editar
+            </Button>
+          )}
           <Button
             size="sm"
             variant="ghost"

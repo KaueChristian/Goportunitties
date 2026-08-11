@@ -1,7 +1,8 @@
 import styles from './OpeningCard.module.css'
 import { Icon } from '../ui/Icon'
 import type { Opening } from '../../types/opening'
-import { avatarColor, formatRelativeDate, formatSalary, initialsOf } from '../../utils/format'
+import { avatarColor, formatRelativeDate, formatSalaryLabel, initialsOf } from '../../utils/format'
+import { isEditable, isManual, sourceLabel } from './sources'
 
 export type CardLayout = 'grid' | 'list'
 
@@ -56,14 +57,21 @@ export function OpeningCard({
         </div>
 
         <div className={styles.actions}>
-          <button
-            className={styles.action}
-            onClick={() => onEdit(opening)}
-            aria-label={`Editar vaga ${opening.role}`}
-            title="Editar"
-          >
-            <Icon name="edit" size={16} />
-          </button>
+          {/*
+           * An ingested opening belongs to the board that published it: the
+           * next run would overwrite any edit. Dismissing it is still allowed,
+           * and the upsert deliberately does not bring a dismissed one back.
+           */}
+          {isEditable(opening) && (
+            <button
+              className={styles.action}
+              onClick={() => onEdit(opening)}
+              aria-label={`Editar vaga ${opening.role}`}
+              title="Editar"
+            >
+              <Icon name="edit" size={16} />
+            </button>
+          )}
           <button
             className={`${styles.action} ${styles.destructive}`}
             onClick={() => onDelete(opening)}
@@ -88,12 +96,18 @@ export function OpeningCard({
           <Icon name="pin" size={15} />
           {opening.location}
         </li>
+        {!isManual(opening) && (
+          <li className={styles.source} title={`Importada de ${sourceLabel(opening.source)}`}>
+            <Icon name="external" size={15} />
+            via {sourceLabel(opening.source)}
+          </li>
+        )}
       </ul>
 
       <div className={styles.bottom}>
         <p className={styles.salary}>
-          {formatSalary(opening.salary)}
-          <span className={styles.salaryUnit}>/mês</span>
+          {formatSalaryLabel(opening.salary)}
+          {opening.salary > 0 && <span className={styles.salaryUnit}>/mês</span>}
         </p>
 
         <a

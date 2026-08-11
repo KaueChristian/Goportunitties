@@ -67,6 +67,7 @@ const (
 type ListOpeningsQuery struct {
 	Search    string `form:"search" binding:"max=120"`
 	Location  string `form:"location" binding:"max=120"`
+	Source    string `form:"source" binding:"max=40"`
 	Remote    *bool  `form:"remote"`
 	MinSalary int64  `form:"minSalary" binding:"gte=0"`
 	Sort      string `form:"sort" binding:"omitempty,oneof=recent salary-desc salary-asc role updated"`
@@ -180,6 +181,12 @@ type LocationCount struct {
 	Count int64  `json:"count"`
 }
 
+// SourceCount is one entry of the provenance facet.
+type SourceCount struct {
+	Value string `json:"value"`
+	Count int64  `json:"count"`
+}
+
 // RemoteCounts holds how many openings each modality option would return.
 type RemoteCounts struct {
 	All    int64 `json:"all"`
@@ -193,6 +200,7 @@ type RemoteCounts struct {
 type OpeningFacets struct {
 	Remote        RemoteCounts    `json:"remote"`
 	Locations     []LocationCount `json:"locations"`
+	Sources       []SourceCount   `json:"sources"`
 	SalaryCeiling int64           `json:"salaryCeiling"`
 }
 

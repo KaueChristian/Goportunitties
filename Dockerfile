@@ -37,6 +37,7 @@ RUN mkdir -p /data
 FROM gcr.io/distroless/static-debian12:nonroot
 
 COPY --from=build /goportunitties /goportunitties
+COPY --from=build /goportunitties-worker /goportunitties-worker
 COPY --from=build --chown=nonroot:nonroot /data /data
 
 ENV APP_ENV=production \
