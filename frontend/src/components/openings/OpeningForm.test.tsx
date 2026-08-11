@@ -9,6 +9,7 @@ const opening: Opening = {
   id: 7,
   createdAt: '2026-08-01T12:00:00Z',
   updatedAt: '2026-08-01T12:00:00Z',
+  source: 'manual',
   role: 'Desenvolvedor Go',
   company: 'Acme',
   location: 'São Paulo, SP',

@@ -52,11 +52,48 @@ func Open(path string, verbose bool) (*gorm.DB, error) {
 	return db, nil
 }
 
-// Migrate applies the schema. Exported so tests can build an in-memory database
+// identityIndex is the unique key behind idempotent ingestion: re-running a
+// source updates the matching row instead of inserting a copy.
+const identityIndex = `CREATE UNIQUE INDEX IF NOT EXISTS idx_openings_source_identity
+	ON openings(source, external_id)`
+
+// Migrate applies the schema. Exported so tests can build a throwaway database
 // through the same path production uses.
+//
+// The three steps run in this order on purpose. Creating the unique index
+// before the backfill would fail on any database that already has rows: they
+// would all share an empty external_id, and a unique index cannot be built over
+// duplicates. Columns first, identities second, constraint last.
 func Migrate(db *gorm.DB) error {
 	if err := db.AutoMigrate(&model.Opening{}); err != nil {
 		return fmt.Errorf("running migrations: %w", err)
+	}
+
+	if err := backfillIdentities(db); err != nil {
+		return err
+	}
+
+	if err := db.Exec(identityIndex).Error; err != nil {
+		return fmt.Errorf("creating the identity index: %w", err)
+	}
+
+	return nil
+}
+
+// backfillIdentities gives an identity to rows that predate provenance.
+//
+// Those rows were all typed in by hand, and their primary key is already unique
+// within the table, so it doubles as their identity. Raw SQL is deliberate: it
+// ignores the soft-delete scope, and deleted rows still occupy the index.
+func backfillIdentities(db *gorm.DB) error {
+	err := db.Exec(`
+		UPDATE openings
+		SET source = ?, external_id = 'legacy-' || id
+		WHERE external_id IS NULL OR external_id = ''`,
+		model.SourceManual,
+	).Error
+	if err != nil {
+		return fmt.Errorf("backfilling opening identities: %w", err)
 	}
 	return nil
 }

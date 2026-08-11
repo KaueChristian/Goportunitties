@@ -42,10 +42,12 @@ func seed(t *testing.T, repo repository.OpeningRepository, openings ...model.Ope
 }
 
 func sample() []model.Opening {
+	// Each row carries its own identity: the unique index does not accept two
+	// openings sharing one, which is exactly the point of it.
 	return []model.Opening{
-		{Role: "Desenvolvedor Go", Company: "Acme", Location: "São Paulo, SP", Remote: true, Link: "https://acme.com/1", Salary: 15000},
-		{Role: "Desenvolvedor React", Company: "Globex", Location: "São Paulo, SP", Remote: false, Link: "https://globex.com/2", Salary: 9000},
-		{Role: "SRE", Company: "Initech", Location: "Curitiba, PR", Remote: true, Link: "https://initech.com/3", Salary: 21500},
+		{Role: "Desenvolvedor Go", Company: "Acme", Location: "São Paulo, SP", Remote: true, Link: "https://acme.com/1", Salary: 15000, Source: model.SourceManual, ExternalID: "sample-1"},
+		{Role: "Desenvolvedor React", Company: "Globex", Location: "São Paulo, SP", Remote: false, Link: "https://globex.com/2", Salary: 9000, Source: model.SourceManual, ExternalID: "sample-2"},
+		{Role: "SRE", Company: "Initech", Location: "Curitiba, PR", Remote: true, Link: "https://initech.com/3", Salary: 21500, Source: model.SourceManual, ExternalID: "sample-3"},
 	}
 }
 
@@ -106,6 +108,244 @@ func TestDeleteIsSoftAndHidesTheRecord(t *testing.T) {
 	}
 	if total != 2 {
 		t.Fatalf("total after delete = %d, want 2", total)
+	}
+}
+
+// ingested builds an opening as a worker would hand it over.
+func ingested(source, externalID, role string, salary int64) model.Opening {
+	return model.Opening{
+		Role:       role,
+		Company:    "Acme",
+		Location:   "Remoto",
+		Remote:     true,
+		Link:       "https://acme.com/" + externalID,
+		Salary:     salary,
+		Source:     source,
+		ExternalID: externalID,
+	}
+}
+
+func countRows(t *testing.T, db *gorm.DB) int64 {
+	t.Helper()
+
+	var rows int64
+	if err := db.Model(&model.Opening{}).Count(&rows).Error; err != nil {
+		t.Fatalf("counting openings: %v", err)
+	}
+	return rows
+}
+
+// The property the whole ingestion step rests on: running a source twice must
+// not duplicate anything.
+func TestUpsertBatchIsIdempotent(t *testing.T) {
+	repo, db := newRepo(t)
+	ctx := context.Background()
+
+	batch := []model.Opening{
+		ingested("remoteok", "1", "Desenvolvedor Go", 15000),
+		ingested("remoteok", "2", "SRE", 21500),
+	}
+
+	first, err := repo.UpsertBatch(ctx, batch)
+	if err != nil {
+		t.Fatalf("first run: %v", err)
+	}
+	if first.Created != 2 || first.Updated != 0 {
+		t.Fatalf("first run = %+v, want 2 created", first)
+	}
+
+	second, err := repo.UpsertBatch(ctx, batch)
+	if err != nil {
+		t.Fatalf("second run: %v", err)
+	}
+	if second.Created != 0 || second.Updated != 2 {
+		t.Fatalf("second run = %+v, want 2 updated", second)
+	}
+
+	if rows := countRows(t, db); rows != 2 {
+		t.Fatalf("%d rows after two runs, want 2", rows)
+	}
+}
+
+func TestUpsertBatchRefreshesChangedFields(t *testing.T) {
+	repo, _ := newRepo(t)
+	ctx := context.Background()
+
+	if _, err := repo.UpsertBatch(ctx, []model.Opening{ingested("remoteok", "1", "Dev Go", 15000)}); err != nil {
+		t.Fatalf("first run: %v", err)
+	}
+
+	// The source raised the salary and renamed the role.
+	changed := ingested("remoteok", "1", "Desenvolvedor Go Sênior", 19000)
+	if _, err := repo.UpsertBatch(ctx, []model.Opening{changed}); err != nil {
+		t.Fatalf("second run: %v", err)
+	}
+
+	openings, _, err := repo.List(ctx, repository.Filter{})
+	if err != nil {
+		t.Fatalf("List: %v", err)
+	}
+	if len(openings) != 1 {
+		t.Fatalf("%d openings, want 1", len(openings))
+	}
+	if openings[0].Role != "Desenvolvedor Go Sênior" || openings[0].Salary != 19000 {
+		t.Fatalf("row was not refreshed: %+v", openings[0])
+	}
+}
+
+// Ingestion must never touch what the user typed. It cannot, because a manual
+// row's source never matches an ingested batch's — this pins that down.
+func TestUpsertBatchLeavesManualOpeningsAlone(t *testing.T) {
+	repo, db := newRepo(t)
+	ctx := context.Background()
+
+	manual := model.Opening{
+		Role: "Vaga minha", Company: "Acme", Location: "Remoto", Remote: true,
+		Link: "https://acme.com/1", Salary: 30000,
+		Source: model.SourceManual, ExternalID: "manual-1",
+	}
+	if err := repo.Create(ctx, &manual); err != nil {
+		t.Fatalf("Create: %v", err)
+	}
+
+	// Same company and link, but coming from a provider.
+	if _, err := repo.UpsertBatch(ctx, []model.Opening{ingested("remoteok", "1", "Vaga da fonte", 1000)}); err != nil {
+		t.Fatalf("UpsertBatch: %v", err)
+	}
+
+	stored, err := repo.FindByID(ctx, manual.ID)
+	if err != nil {
+		t.Fatalf("FindByID: %v", err)
+	}
+	if stored.Role != "Vaga minha" || stored.Salary != 30000 {
+		t.Fatalf("ingestion overwrote a manual opening: %+v", stored)
+	}
+	if rows := countRows(t, db); rows != 2 {
+		t.Fatalf("%d rows, want 2 — the ingested one is a separate record", rows)
+	}
+}
+
+// An opening the user dismissed must not come back on the next run.
+func TestUpsertBatchDoesNotResurrectDeletedOpenings(t *testing.T) {
+	repo, db := newRepo(t)
+	ctx := context.Background()
+
+	batch := []model.Opening{ingested("remoteok", "1", "Dev Go", 15000)}
+	if _, err := repo.UpsertBatch(ctx, batch); err != nil {
+		t.Fatalf("first run: %v", err)
+	}
+
+	openings, _, err := repo.List(ctx, repository.Filter{})
+	if err != nil {
+		t.Fatalf("List: %v", err)
+	}
+	if err := repo.Delete(ctx, &openings[0]); err != nil {
+		t.Fatalf("Delete: %v", err)
+	}
+
+	result, err := repo.UpsertBatch(ctx, batch)
+	if err != nil {
+		t.Fatalf("second run: %v", err)
+	}
+	// A soft-deleted row still holds its slot in the unique index, so it counts
+	// as known rather than new.
+	if result.Created != 0 || result.Updated != 1 {
+		t.Fatalf("second run = %+v, want 1 updated", result)
+	}
+
+	_, total, err := repo.List(ctx, repository.Filter{})
+	if err != nil {
+		t.Fatalf("List: %v", err)
+	}
+	if total != 0 {
+		t.Fatalf("the dismissed opening came back: %d visible", total)
+	}
+	if rows := countRows(t, db.Unscoped()); rows != 1 {
+		t.Fatalf("%d rows stored, want 1 — no copy was inserted", rows)
+	}
+}
+
+// Two sources can carry the same id without colliding: the key is the pair.
+func TestUpsertBatchKeepsSourcesApart(t *testing.T) {
+	repo, db := newRepo(t)
+	ctx := context.Background()
+
+	if _, err := repo.UpsertBatch(ctx, []model.Opening{ingested("remoteok", "1", "Dev Go", 15000)}); err != nil {
+		t.Fatalf("remoteok: %v", err)
+	}
+	if _, err := repo.UpsertBatch(ctx, []model.Opening{ingested("weworkremotely", "1", "Dev Rust", 16000)}); err != nil {
+		t.Fatalf("weworkremotely: %v", err)
+	}
+
+	if rows := countRows(t, db); rows != 2 {
+		t.Fatalf("%d rows, want 2", rows)
+	}
+}
+
+func TestUpsertBatchRejectsMixedSources(t *testing.T) {
+	repo, db := newRepo(t)
+
+	_, err := repo.UpsertBatch(context.Background(), []model.Opening{
+		ingested("remoteok", "1", "Dev Go", 15000),
+		ingested("weworkremotely", "2", "Dev Rust", 16000),
+	})
+
+	if !errors.Is(err, repository.ErrMixedSources) {
+		t.Fatalf("got %v, want repository.ErrMixedSources", err)
+	}
+	if rows := countRows(t, db); rows != 0 {
+		t.Fatalf("%d rows written, want none", rows)
+	}
+}
+
+// The batch is one transaction: a failure halfway leaves nothing behind.
+func TestUpsertBatchIsAtomic(t *testing.T) {
+	repo, db := newRepo(t)
+
+	// The second entry repeats the first's identity, which the unique index
+	// rejects mid-statement.
+	_, err := repo.UpsertBatch(context.Background(), []model.Opening{
+		ingested("remoteok", "1", "Dev Go", 15000),
+		{Role: "Sem link", Company: "Acme", Location: "Remoto", Source: "remoteok", ExternalID: "1", Salary: -1},
+	})
+	if err == nil {
+		t.Skip("this database accepted the batch; nothing to assert about a rollback")
+	}
+
+	if rows := countRows(t, db.Unscoped()); rows != 0 {
+		t.Fatalf("%d rows survived a failed batch, want none", rows)
+	}
+}
+
+func TestUpsertBatchHandlesAnEmptyBatch(t *testing.T) {
+	repo, _ := newRepo(t)
+
+	result, err := repo.UpsertBatch(context.Background(), nil)
+	if err != nil {
+		t.Fatalf("UpsertBatch: %v", err)
+	}
+	if (result != repository.UpsertResult{}) {
+		t.Fatalf("result = %+v, want the zero value", result)
+	}
+}
+
+func TestUpsertBatchWritesBeyondOneChunk(t *testing.T) {
+	repo, db := newRepo(t)
+
+	batch := make([]model.Opening, 0, 250)
+	for i := 0; i < 250; i++ {
+		batch = append(batch, ingested("remoteok", strconv.Itoa(i), "Vaga", int64(1000+i)))
+	}
+
+	result, err := repo.UpsertBatch(context.Background(), batch)
+	if err != nil {
+		t.Fatalf("UpsertBatch: %v", err)
+	}
+	if result.Created != 250 {
+		t.Fatalf("created %d, want 250", result.Created)
+	}
+	if rows := countRows(t, db); rows != 250 {
+		t.Fatalf("%d rows, want 250", rows)
 	}
 }
 

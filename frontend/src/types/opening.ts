@@ -3,6 +3,8 @@ export interface Opening {
   id: number
   createdAt: string
   updatedAt: string
+  /** Where the opening came from: 'manual' or an ingestion source slug. */
+  source: string
   role: string
   company: string
   location: string

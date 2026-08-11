@@ -44,6 +44,9 @@ func NewOpeningService(repo repository.OpeningRepository) OpeningService {
 }
 
 func (s *openingService) Create(ctx context.Context, req dto.OpeningRequest) (*model.Opening, error) {
+	// Provenance is settled by the model on the way in, and never travels in
+	// the request: there is no field for a client to claim an opening came from
+	// somewhere it did not.
 	opening := &model.Opening{}
 	applyRequest(opening, req)
 

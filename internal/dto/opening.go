@@ -98,10 +98,14 @@ func (q ListOpeningsQuery) Offset() int {
 }
 
 // OpeningResponse is what every opening endpoint returns.
+//
+// Source is exposed so the interface can credit an opening to where it came
+// from; the identity within that source stays internal.
 type OpeningResponse struct {
 	ID        uint      `json:"id"`
 	CreatedAt time.Time `json:"createdAt"`
 	UpdatedAt time.Time `json:"updatedAt"`
+	Source    string    `json:"source"`
 
 	Role     string `json:"role"`
 	Company  string `json:"company"`
@@ -117,6 +121,7 @@ func NewOpeningResponse(opening *model.Opening) OpeningResponse {
 		ID:        opening.ID,
 		CreatedAt: opening.CreatedAt,
 		UpdatedAt: opening.UpdatedAt,
+		Source:    opening.Source,
 		Role:      opening.Role,
 		Company:   opening.Company,
 		Location:  opening.Location,

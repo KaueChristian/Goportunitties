@@ -191,6 +191,30 @@ func TestListPaginatesAndFilters(t *testing.T) {
 	}
 }
 
+// Creating the same posting twice through the API has to keep working: the
+// unique index that ingestion relies on must not constrain what a person types.
+func TestIdenticalOpeningsCanBeCreatedTwice(t *testing.T) {
+	engine, _ := newAPI(t, nil)
+
+	first, firstBody := request(t, engine, http.MethodPost, "/api/v1/openings", newOpening)
+	second, secondBody := request(t, engine, http.MethodPost, "/api/v1/openings", newOpening)
+
+	if first.Code != http.StatusCreated || second.Code != http.StatusCreated {
+		t.Fatalf("statuses %d and %d, want 201 twice (%s)", first.Code, second.Code, second.Body)
+	}
+
+	firstID := firstBody.Data.(map[string]any)["id"]
+	secondID := secondBody.Data.(map[string]any)["id"]
+	if firstID == secondID {
+		t.Fatalf("both requests returned opening %v", firstID)
+	}
+
+	// Provenance is assigned by the server, not sent by the client.
+	if source := secondBody.Data.(map[string]any)["source"]; source != "manual" {
+		t.Fatalf("source = %v, want manual", source)
+	}
+}
+
 // An empty index must answer with an empty array, never null: the frontend maps
 // over this value.
 func TestEmptyListIsAnArray(t *testing.T) {

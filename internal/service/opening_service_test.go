@@ -26,6 +26,7 @@ type fakeRepo struct {
 	maxSalary    int64
 	medianSalary int64
 	suggestions  []repository.Suggestion
+	upserted     []model.Opening
 	lastTerm     string
 	lastLimit    int
 	aggregates   repository.Aggregates
@@ -48,6 +49,14 @@ func (f *fakeRepo) Create(_ context.Context, opening *model.Opening) error {
 	stored := *opening
 	f.openings[opening.ID] = &stored
 	return nil
+}
+
+func (f *fakeRepo) UpsertBatch(_ context.Context, openings []model.Opening) (repository.UpsertResult, error) {
+	if f.err != nil {
+		return repository.UpsertResult{}, f.err
+	}
+	f.upserted = append(f.upserted, openings...)
+	return repository.UpsertResult{Created: int64(len(openings))}, nil
 }
 
 func (f *fakeRepo) FindByID(_ context.Context, id uint) (*model.Opening, error) {

@@ -4,11 +4,13 @@ package repository
 import (
 	"context"
 	"database/sql"
+	"errors"
 	"fmt"
 	"strings"
 
 	"github.com/KaueChristian/Goportunitties/internal/model"
 	"gorm.io/gorm"
+	"gorm.io/gorm/clause"
 )
 
 // Filter is the set of conditions the listing endpoint can express. The zero
@@ -66,9 +68,24 @@ type Aggregates struct {
 	MaxSalary     int64
 }
 
+// UpsertResult reports what a batch actually did, which is what an ingestion
+// run needs in its log: "42 new, 380 refreshed" says more than "422 written".
+type UpsertResult struct {
+	Created int64
+	Updated int64
+}
+
+// ErrMixedSources is returned when a batch carries openings from more than one
+// source. Batches are per-source so the identity check stays a single query.
+var ErrMixedSources = errors.New("a batch must come from a single source")
+
+// upsertBatchSize keeps one INSERT from growing past SQLite's parameter limit.
+const upsertBatchSize = 100
+
 // OpeningRepository defines data access for openings.
 type OpeningRepository interface {
 	Create(ctx context.Context, opening *model.Opening) error
+	UpsertBatch(ctx context.Context, openings []model.Opening) (UpsertResult, error)
 	FindByID(ctx context.Context, id uint) (*model.Opening, error)
 	List(ctx context.Context, filter Filter) ([]model.Opening, int64, error)
 	Suggest(ctx context.Context, term string, limit int) ([]Suggestion, error)
@@ -93,6 +110,69 @@ func NewOpeningRepository(db *gorm.DB) OpeningRepository {
 
 func (r *gormOpeningRepository) Create(ctx context.Context, opening *model.Opening) error {
 	return r.db.WithContext(ctx).Create(opening).Error
+}
+
+// UpsertBatch writes a batch of openings from one source, inserting the ones
+// that are new and refreshing the ones already on record.
+//
+// The conflict target is (source, external_id), the unique key created in
+// database.Migrate. Two properties fall out of that key rather than out of any
+// extra condition:
+//
+//   - ingestion cannot touch a manual opening, because a manual row's source
+//     never matches an ingested batch's;
+//   - an opening the user deleted stays deleted, because deleted_at is not
+//     among the columns a conflict updates — the next run refreshes the row's
+//     content without bringing it back.
+//
+// The whole batch runs in one transaction: a source that fails halfway leaves
+// nothing behind.
+func (r *gormOpeningRepository) UpsertBatch(ctx context.Context, openings []model.Opening) (UpsertResult, error) {
+	if len(openings) == 0 {
+		return UpsertResult{}, nil
+	}
+
+	source := openings[0].Source
+	identities := make([]string, 0, len(openings))
+	for _, opening := range openings {
+		if opening.Source != source {
+			return UpsertResult{}, ErrMixedSources
+		}
+		identities = append(identities, opening.ExternalID)
+	}
+
+	result := UpsertResult{}
+
+	err := r.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
+		// Counted before the write, and unscoped: a soft-deleted row still
+		// holds its slot in the unique index, so it counts as already known.
+		var known int64
+		err := tx.Unscoped().
+			Model(&model.Opening{}).
+			Where("source = ? AND external_id IN ?", source, identities).
+			Count(&known).Error
+		if err != nil {
+			return fmt.Errorf("counting known openings: %w", err)
+		}
+
+		err = tx.Clauses(clause.OnConflict{
+			Columns: []clause.Column{{Name: "source"}, {Name: "external_id"}},
+			DoUpdates: clause.AssignmentColumns([]string{
+				"role", "company", "location", "remote", "link", "salary", "updated_at",
+			}),
+		}).CreateInBatches(openings, upsertBatchSize).Error
+		if err != nil {
+			return fmt.Errorf("upserting openings: %w", err)
+		}
+
+		result = UpsertResult{Created: int64(len(openings)) - known, Updated: known}
+		return nil
+	})
+	if err != nil {
+		return UpsertResult{}, err
+	}
+
+	return result, nil
 }
 
 func (r *gormOpeningRepository) FindByID(ctx context.Context, id uint) (*model.Opening, error) {
