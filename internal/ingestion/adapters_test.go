@@ -274,6 +274,64 @@ func TestCleanTextDropsDanglingPunctuation(t *testing.T) {
 	}
 }
 
+// The exact corruption RemoteOK's own feed ships for some titles: UTF-8 text
+// decoded as Latin-1 and re-encoded as UTF-8, one time. "Don't" (with a curly
+// apostrophe, ’ = U+2019 = bytes E2 80 99) arrives with those three bytes each
+// read back as their own Latin-1 character.
+func TestCleanTextRepairsMojibake(t *testing.T) {
+	garbled := "Don" + string(rune(0xE2)) + string(rune(0x80)) + string(rune(0x99)) + "t miss the stitch Time"
+
+	got := cleanText(garbled)
+
+	if got != "Don’t miss the stitch Time" {
+		t.Fatalf("cleanText(%q) = %q, want the apostrophe repaired", garbled, got)
+	}
+}
+
+func TestCleanTextLeavesCleanTextAlone(t *testing.T) {
+	for _, value := range []string{
+		"You Don't Need More Information", // a straight apostrophe: nothing to repair
+		"Café com Leite",                  // é is a real character, not a C1 control
+		"Curitiba, PR",
+	} {
+		if got := cleanText(value); got != value {
+			t.Fatalf("cleanText(%q) = %q, want it unchanged", value, got)
+		}
+	}
+}
+
+// A C1 control byte sitting next to genuine wide Unicode (say, an emoji) is not
+// the single-layer corruption this function knows how to undo, so no repair is
+// attempted — but the control byte itself is still what would render as a
+// garbled glyph, so it comes out anyway.
+func TestCleanTextStripsControlsItCannotRepairNextToWideRunes(t *testing.T) {
+	mixed := "Vaga " + string(rune(0x80)) + " 🚀"
+
+	if got := cleanText(mixed); got != "Vaga 🚀" {
+		t.Fatalf("cleanText(%q) = %q, want the control byte dropped", mixed, got)
+	}
+}
+
+// RemoteOK has been seen truncating a title mid multi-byte character — an
+// emoji cut in half by the time it reaches this pipeline. The reconstructed
+// bytes form an incomplete UTF-8 sequence that cannot be decoded at all, so
+// the exact character is unrecoverable; the control bytes are stripped so at
+// least the garbled symbols do not reach the screen.
+func TestCleanTextStripsAnUnrepairableTruncatedSequence(t *testing.T) {
+	// The first three of an emoji's four Latin-1-remapped UTF-8 bytes,
+	// mirroring what RemoteOK's feed has shipped in practice.
+	truncated := "literally " + string(rune(0xF0)) + string(rune(0x9F)) + string(rune(0x98))
+
+	got := cleanText(truncated)
+
+	if strings.ContainsFunc(got, isC1Control) {
+		t.Fatalf("cleanText(%q) = %q, still carries a control byte", truncated, got)
+	}
+	if !strings.HasPrefix(got, "literally") {
+		t.Fatalf("cleanText(%q) = %q, lost the recoverable prefix", truncated, got)
+	}
+}
+
 func TestCleanTextCollapsesAndTruncatesOnRunes(t *testing.T) {
 	if got := cleanText("  Desenvolvedor\n\tGo   Sênior  "); got != "Desenvolvedor Go Sênior" {
 		t.Fatalf("cleanText = %q", got)
