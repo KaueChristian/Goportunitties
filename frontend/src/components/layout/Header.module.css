@@ -1,0 +1,205 @@
+@import '../../styles/keyframes.css';
+
+.header {
+  position: sticky;
+  top: 0;
+  z-index: 50;
+  background-color: color-mix(in srgb, var(--surface-1) 92%, transparent);
+  backdrop-filter: blur(12px);
+  box-shadow: var(--shadow-sm);
+}
+
+.inner {
+  display: flex;
+  align-items: center;
+  gap: var(--space-6);
+  max-width: var(--content-max);
+  height: var(--header-height);
+  margin: 0 auto;
+  padding: 0 var(--space-6);
+}
+
+/* ---- Brand ---- */
+
+.brand {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-3);
+  flex-shrink: 0;
+  color: var(--text-primary);
+}
+
+.brand:hover {
+  text-decoration: none;
+}
+
+.mark {
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  background-color: var(--color-accent);
+  color: var(--text-on-accent);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-accent);
+  transition: transform var(--duration-base) var(--ease-out);
+}
+
+.brand:hover .mark {
+  transform: rotate(-8deg) scale(1.05);
+}
+
+.wordmark {
+  font-family: var(--font-display);
+  font-size: var(--text-lg);
+  font-weight: 400;
+  letter-spacing: -0.02em;
+}
+
+.wordmark strong {
+  font-weight: 800;
+}
+
+/* ---- Navigation ---- */
+
+.nav {
+  display: flex;
+  align-items: center;
+  gap: var(--space-6);
+  margin-left: auto;
+}
+
+/*
+ * The active marker is a pseudo-element rather than a border so switching tabs
+ * never shifts the link's own box by a pixel.
+ */
+.link {
+  position: relative;
+  padding: var(--space-2) 0;
+  color: var(--text-secondary);
+  font-weight: 500;
+  font-size: var(--text-md);
+  transition: color var(--duration-fast) var(--ease-out);
+}
+
+.link:hover {
+  color: var(--color-accent);
+  text-decoration: none;
+}
+
+.link::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 2px;
+  border-radius: var(--radius-pill);
+  background-color: var(--color-accent);
+  transform: scaleX(0);
+  transition: transform var(--duration-base) var(--ease-out);
+}
+
+.linkActive {
+  color: var(--color-accent);
+  font-weight: 700;
+}
+
+.linkActive::after {
+  transform: scaleX(1);
+}
+
+/* ---- Actions ---- */
+
+.actions {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  margin-left: auto;
+}
+
+.iconButton {
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  border-radius: var(--radius-md);
+  background-color: var(--color-accent-soft);
+  color: var(--color-accent);
+  transition:
+    background-color var(--duration-fast) var(--ease-out),
+    color var(--duration-fast) var(--ease-out);
+}
+
+.iconButton:hover {
+  background-color: var(--color-accent);
+  color: var(--text-on-accent);
+}
+
+.menuButton {
+  display: none;
+}
+
+/* ---- Mobile sheet ---- */
+
+.sheet {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  padding: var(--space-3) var(--space-4) var(--space-4);
+  border-top: 1px solid var(--border);
+  background-color: var(--surface-1);
+  animation: rise-in var(--duration-base) var(--ease-out);
+}
+
+.sheetLink {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-3) var(--space-4);
+  border-radius: var(--radius-md);
+  color: var(--text-secondary);
+  font-weight: 500;
+}
+
+.sheetLink:hover {
+  background-color: var(--surface-2);
+  text-decoration: none;
+}
+
+.sheetLinkActive {
+  background-color: var(--color-accent-soft);
+  color: var(--color-accent);
+  font-weight: 700;
+}
+
+@media (max-width: 900px) {
+  .nav {
+    display: none;
+  }
+
+  .menuButton {
+    display: grid;
+  }
+}
+
+@media (min-width: 901px) {
+  .sheet {
+    display: none;
+  }
+}
+
+@media (max-width: 640px) {
+  .inner {
+    gap: var(--space-3);
+    padding: 0 var(--space-4);
+  }
+
+  .wordmark {
+    display: none;
+  }
+
+  .ctaLabel {
+    display: none;
+  }
+}

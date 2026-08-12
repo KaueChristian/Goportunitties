@@ -1,0 +1,231 @@
+{
+  "info": {
+    "name": "Goportunitties",
+    "description": "API de vagas de tecnologia. Base URL em {{baseUrl}}, por padrão http://localhost:8080.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    { "key": "baseUrl", "value": "http://localhost:8080" },
+    { "key": "openingId", "value": "1" }
+  ],
+  "item": [
+    {
+      "name": "Health",
+      "item": [
+        {
+          "name": "Liveness",
+          "request": {
+            "method": "GET",
+            "url": { "raw": "{{baseUrl}}/healthz", "host": ["{{baseUrl}}"], "path": ["healthz"] }
+          }
+        },
+        {
+          "name": "Readiness",
+          "request": {
+            "method": "GET",
+            "url": { "raw": "{{baseUrl}}/readyz", "host": ["{{baseUrl}}"], "path": ["readyz"] }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Vagas",
+      "item": [
+        {
+          "name": "Listar (padrão)",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/openings",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "openings"]
+            }
+          }
+        },
+        {
+          "name": "Listar (filtrada e paginada)",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/openings?search=go&remote=true&minSalary=10000&sort=salary-desc&page=1&pageSize=5",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "openings"],
+              "query": [
+                { "key": "search", "value": "go" },
+                { "key": "remote", "value": "true" },
+                { "key": "minSalary", "value": "10000" },
+                { "key": "sort", "value": "salary-desc" },
+                { "key": "page", "value": "1" },
+                { "key": "pageSize", "value": "5" }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Facetas dos filtros",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/openings/facets?remote=true",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "openings", "facets"],
+              "query": [{ "key": "remote", "value": "true" }]
+            }
+          }
+        },
+        {
+          "name": "Agregados do painel",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/openings/stats",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "openings", "stats"]
+            }
+          }
+        },
+        {
+          "name": "Detalhar",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/openings/{{openingId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "openings", "{{openingId}}"]
+            }
+          }
+        },
+        {
+          "name": "Criar (201 + Location)",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"role\": \"Desenvolvedor Back-end Go\",\n  \"company\": \"Acme Corp\",\n  \"location\": \"São Paulo, SP\",\n  \"remote\": true,\n  \"link\": \"https://acme.com/vagas/1\",\n  \"salary\": 15000\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/openings",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "openings"]
+            }
+          }
+        },
+        {
+          "name": "Substituir (PUT)",
+          "request": {
+            "method": "PUT",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"role\": \"SRE Pleno\",\n  \"company\": \"Initech\",\n  \"location\": \"Curitiba, PR\",\n  \"remote\": false,\n  \"link\": \"https://initech.com/vagas/9\",\n  \"salary\": 18000\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/openings/{{openingId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "openings", "{{openingId}}"]
+            }
+          }
+        },
+        {
+          "name": "Atualizar parcialmente (PATCH)",
+          "request": {
+            "method": "PATCH",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"salary\": 0,\n  \"remote\": false\n}"
+            },
+            "description": "Só os campos enviados mudam. Zero e false são valores, não omissões.",
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/openings/{{openingId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "openings", "{{openingId}}"]
+            }
+          }
+        },
+        {
+          "name": "Excluir",
+          "request": {
+            "method": "DELETE",
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/openings/{{openingId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "openings", "{{openingId}}"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Erros",
+      "item": [
+        {
+          "name": "422 — campos obrigatórios faltando",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"role\": \"Go\"\n}" },
+            "description": "A resposta traz `fields` com uma mensagem por campo.",
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/openings",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "openings"]
+            }
+          }
+        },
+        {
+          "name": "422 — link fora de http(s)",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"role\": \"Desenvolvedor Go\",\n  \"company\": \"Acme Corp\",\n  \"location\": \"São Paulo, SP\",\n  \"remote\": true,\n  \"link\": \"javascript:alert(1)\",\n  \"salary\": 15000\n}"
+            },
+            "description": "O link vira o href de um link na interface, então o esquema é validado no servidor.",
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/openings",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "openings"]
+            }
+          }
+        },
+        {
+          "name": "422 — ordenação desconhecida",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/openings?sort=aleatorio",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "openings"],
+              "query": [{ "key": "sort", "value": "aleatorio" }]
+            }
+          }
+        },
+        {
+          "name": "400 — id inválido",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/openings/abc",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "openings", "abc"]
+            }
+          }
+        },
+        {
+          "name": "404 — vaga inexistente",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/openings/999999",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "openings", "999999"]
+            }
+          }
+        }
+      ]
+    }
+  ]
+}

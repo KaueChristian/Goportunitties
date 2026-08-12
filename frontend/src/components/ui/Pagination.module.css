@@ -1,0 +1,78 @@
+.pagination {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-2);
+  margin-top: var(--space-8);
+}
+
+.pages {
+  display: flex;
+  align-items: center;
+  gap: var(--space-1);
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.page,
+.arrow {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 40px;
+  height: 40px;
+  padding: 0 var(--space-2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  background-color: var(--surface-1);
+  color: var(--text-primary);
+  font-size: var(--text-sm);
+  /* Page numbers sit in a row and should not shift width as they change. */
+  font-variant-numeric: tabular-nums;
+  cursor: pointer;
+  transition:
+    background-color var(--duration-fast) var(--ease-out),
+    border-color var(--duration-fast) var(--ease-out),
+    color var(--duration-fast) var(--ease-out);
+}
+
+.page:not(.current):hover,
+.arrow:not(:disabled):hover {
+  border-color: var(--color-accent);
+  color: var(--color-accent);
+}
+
+.current {
+  border-color: var(--color-accent);
+  background-color: var(--color-accent);
+  color: var(--text-on-accent);
+  font-weight: 600;
+  cursor: default;
+}
+
+.arrow:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.arrow svg {
+  flex-shrink: 0;
+}
+
+/* One arrow icon serves both directions. */
+.arrow:first-child svg {
+  transform: rotate(180deg);
+}
+
+.gap {
+  padding: 0 var(--space-1);
+  color: var(--text-muted);
+  user-select: none;
+}
+
+@media (max-width: 540px) {
+  .pagination {
+    flex-wrap: wrap;
+  }
+}

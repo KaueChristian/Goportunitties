@@ -1,0 +1,156 @@
+@import './tokens.css';
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+* {
+  margin: 0;
+}
+
+html {
+  -webkit-text-size-adjust: 100%;
+}
+
+body {
+  min-height: 100vh;
+  background-color: var(--surface-page);
+  color: var(--text-secondary);
+  font-family: var(--font-sans);
+  font-size: var(--text-base);
+  line-height: 1.65;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+/*
+ * Headings carry the display face and the near-black ink; body copy sits a step
+ * lighter. That two-tone split is what separates a job board's titles from its
+ * supporting text without needing extra weight.
+ */
+h1,
+h2,
+h3,
+h4 {
+  color: var(--text-primary);
+  font-family: var(--font-display);
+  line-height: 1.35;
+  font-weight: 700;
+  text-wrap: balance;
+}
+
+h1 {
+  font-weight: 800;
+}
+
+p {
+  text-wrap: pretty;
+}
+
+img,
+svg {
+  display: block;
+  max-width: 100%;
+}
+
+button,
+input,
+select,
+textarea {
+  font: inherit;
+  color: inherit;
+}
+
+button {
+  cursor: pointer;
+  background: none;
+  border: none;
+  padding: 0;
+}
+
+a {
+  color: var(--color-accent);
+  text-decoration: none;
+}
+
+a:hover {
+  text-decoration: underline;
+}
+
+:focus-visible {
+  outline: 2px solid var(--color-accent);
+  outline-offset: 2px;
+  border-radius: var(--radius-sm);
+}
+
+/* Scrollbars stay recessive so lists don't grow a loud edge. */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: var(--border-strong) transparent;
+}
+
+*::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+*::-webkit-scrollbar-thumb {
+  background-color: var(--border-strong);
+  border-radius: var(--radius-pill);
+}
+
+*::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+/* Keyframes live in keyframes.css, imported by each *.module.css that animates. */
+
+/*
+ * Cross-fade between light and dark.
+ *
+ * Switching the theme repaints every surface at once, and without a transition
+ * that lands as a hard flash. The attribute is set by useTheme only around the
+ * toggle and removed right after: making these transitions permanent would also
+ * slow every hover and focus state, which should stay instant.
+ *
+ * The universal selector plus !important is deliberate — it has to reach
+ * component styles that declare their own, narrower transitions.
+ */
+:root[data-theme-transition],
+:root[data-theme-transition] *,
+:root[data-theme-transition] *::before,
+:root[data-theme-transition] *::after {
+  transition:
+    background-color 320ms var(--ease-in-out),
+    border-color 320ms var(--ease-in-out),
+    color 320ms var(--ease-in-out),
+    fill 320ms var(--ease-in-out),
+    stroke 320ms var(--ease-in-out),
+    box-shadow 320ms var(--ease-in-out) !important;
+  transition-delay: 0s !important;
+}
+
+/* Motion is decoration — never a requirement for understanding the page. */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}

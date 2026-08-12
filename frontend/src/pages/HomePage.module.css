@@ -1,0 +1,308 @@
+@import '../styles/keyframes.css';
+
+/* ---- Hero ---- */
+
+.hero {
+  position: relative;
+  overflow: hidden;
+  background-color: var(--surface-hero);
+}
+
+.heroInner {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 0.85fr);
+  align-items: center;
+  gap: var(--space-12);
+  max-width: var(--content-max);
+  margin: 0 auto;
+  padding: var(--space-20) var(--space-6);
+}
+
+.heroContent {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-5);
+  animation: rise-in var(--duration-slow) var(--ease-out);
+}
+
+.eyebrow {
+  color: var(--color-accent);
+  font-family: var(--font-display);
+  font-size: var(--text-lg);
+  font-weight: 700;
+}
+
+.title {
+  font-size: var(--text-hero);
+  letter-spacing: -0.02em;
+}
+
+/*
+ * <mark> for the accented words: it is the element that means "highlighted run
+ * of text", and the default yellow is replaced by the accent's own tint.
+ */
+.mark {
+  padding: 0 var(--space-1);
+  background-color: var(--color-accent-soft);
+  color: var(--color-accent);
+  border-radius: var(--radius-sm);
+}
+
+.lead {
+  max-width: 52ch;
+  font-size: var(--text-md);
+}
+
+.popular {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  font-size: var(--text-sm);
+}
+
+.popularLabel {
+  color: var(--text-primary);
+  font-weight: 500;
+}
+
+.chip {
+  padding: var(--space-1) var(--space-3);
+  border-radius: var(--radius-pill);
+  background-color: var(--surface-1);
+  color: var(--text-secondary);
+  font-size: var(--text-sm);
+  transition:
+    background-color var(--duration-fast) var(--ease-out),
+    color var(--duration-fast) var(--ease-out);
+}
+
+.chip:hover {
+  background-color: var(--color-accent);
+  color: var(--text-on-accent);
+}
+
+/* ---- Hero artwork ---- */
+
+.heroArt {
+  position: relative;
+  height: 420px;
+  animation: fade-in var(--duration-slow) var(--ease-out);
+}
+
+.blob {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 340px;
+  height: 340px;
+  transform: translate(-50%, -50%);
+  background-color: var(--color-accent-soft);
+  border-radius: 46% 54% 58% 42% / 52% 44% 56% 48%;
+}
+
+.artCard {
+  position: absolute;
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  width: 240px;
+  padding: var(--space-4);
+  background-color: var(--surface-1);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-md);
+}
+
+.artCard1 {
+  top: 12%;
+  left: 4%;
+  animation: float-y 6s var(--ease-in-out) infinite;
+}
+
+.artCard2 {
+  top: 42%;
+  right: 0;
+  animation: float-y 6s var(--ease-in-out) 0.8s infinite;
+}
+
+.artCard3 {
+  bottom: 8%;
+  left: 12%;
+  animation: float-y 6s var(--ease-in-out) 1.6s infinite;
+}
+
+.artLogo {
+  flex-shrink: 0;
+  width: 40px;
+  height: 40px;
+  background-color: var(--color-accent);
+  border-radius: var(--radius-md);
+}
+
+.artLogoAlt {
+  background-color: var(--color-remote);
+}
+
+.artLogoAlt2 {
+  background-color: var(--color-onsite);
+}
+
+.artLines {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  flex: 1;
+}
+
+.artLines i {
+  height: 8px;
+  background-color: var(--surface-2);
+  border-radius: var(--radius-pill);
+}
+
+.artLines i:first-child {
+  width: 80%;
+}
+
+.artLines i:last-child {
+  width: 55%;
+}
+
+/* A dot field, drawn with a repeating gradient so it costs no extra request. */
+.dots {
+  position: absolute;
+  top: 4%;
+  right: 8%;
+  width: 96px;
+  height: 96px;
+  background-image: radial-gradient(var(--color-accent) 2px, transparent 2px);
+  background-size: 16px 16px;
+  opacity: 0.35;
+}
+
+/* ---- Page sections ---- */
+
+.page {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-16);
+  max-width: var(--content-max);
+  margin: 0 auto;
+  padding: var(--space-16) var(--space-6);
+}
+
+.section {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-6);
+}
+
+.sectionHead {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: var(--space-4);
+  flex-wrap: wrap;
+}
+
+.sectionTagline {
+  color: var(--color-accent);
+  font-size: var(--text-sm);
+  font-weight: 500;
+}
+
+.sectionTitle {
+  font-size: var(--text-2xl);
+  letter-spacing: -0.01em;
+}
+
+.sectionLink {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  color: var(--color-accent);
+  font-weight: 500;
+}
+
+.sectionLink:hover {
+  text-decoration: none;
+}
+
+.sectionLink svg {
+  transition: transform var(--duration-base) var(--ease-out);
+}
+
+.sectionLink:hover svg {
+  transform: translateX(4px);
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+  gap: var(--space-5);
+}
+
+/* ---- Closing call to action ---- */
+
+.cta {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-6);
+  flex-wrap: wrap;
+  padding: var(--space-10) var(--space-12);
+  background-color: var(--surface-hero);
+  border-radius: var(--radius-xl);
+}
+
+.ctaText {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+}
+
+.ctaTitle {
+  font-size: var(--text-xl);
+}
+
+.ctaLead {
+  font-size: var(--text-base);
+}
+
+@media (max-width: 980px) {
+  .heroInner {
+    grid-template-columns: 1fr;
+    padding: var(--space-12) var(--space-6);
+  }
+
+  .heroArt {
+    display: none;
+  }
+
+  .title {
+    font-size: var(--text-3xl);
+  }
+}
+
+@media (max-width: 640px) {
+  .heroInner {
+    padding: var(--space-10) var(--space-4);
+  }
+
+  .page {
+    gap: var(--space-12);
+    padding: var(--space-12) var(--space-4);
+  }
+
+  .title {
+    font-size: var(--text-2xl);
+  }
+
+  .grid {
+    grid-template-columns: 1fr;
+  }
+
+  .cta {
+    padding: var(--space-8);
+  }
+}

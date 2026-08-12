@@ -1,0 +1,19 @@
+.git
+.github
+.vscode
+.claude
+
+# Rebuilt inside the image
+node_modules
+frontend/node_modules
+internal/web/dist
+
+# Local artefacts that must never reach the image
+*.exe
+goportunitties
+data
+*.db
+*.log
+*.out
+coverage.html
+.env

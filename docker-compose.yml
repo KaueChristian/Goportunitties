@@ -1,0 +1,39 @@
+services:
+  api:
+    build:
+      context: .
+      args:
+        VERSION: ${VERSION:-dev}
+    ports:
+      - '8080:8080'
+    environment:
+      APP_ENV: production
+      # Same origin in production — the binary serves the SPA too — so no
+      # cross-origin request has to be allowed.
+      CORS_ORIGINS: ''
+    volumes:
+      # The SQLite file outlives the container.
+      - goportunitties-data:/data
+    restart: unless-stopped
+
+  # Shares the image and the volume with the API: same schema, same database
+  # file, different entrypoint.
+  worker:
+    build:
+      context: .
+      args:
+        VERSION: ${VERSION:-dev}
+    entrypoint: ['/goportunitties-worker']
+    environment:
+      APP_ENV: production
+      INGESTION_SOURCES: ${INGESTION_SOURCES:-backend-br,frontend-br,remotive}
+      INGESTION_INTERVAL: ${INGESTION_INTERVAL:-6h}
+      INGESTION_MAX_PER_SOURCE: ${INGESTION_MAX_PER_SOURCE:-100}
+    volumes:
+      - goportunitties-data:/data
+    depends_on:
+      - api
+    restart: unless-stopped
+
+volumes:
+  goportunitties-data:

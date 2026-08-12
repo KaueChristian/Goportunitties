@@ -1,0 +1,14 @@
+/*
+ * The shell is a column so the footer can claim whatever height is left over on
+ * short pages (its own `margin-top: auto`) without a min-height hack.
+ */
+.app {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+  background-color: var(--surface-page);
+}
+
+.main {
+  flex: 1;
+}

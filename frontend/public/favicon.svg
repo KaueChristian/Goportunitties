@@ -1,0 +1,25 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="24" height="24">
+  <!--
+    A marca do Goportunitties: a mesma bússola que o header desenha, sobre o
+    quadrado da cor de destaque.
+
+    O glifo é reduzido a 60% e centrado — em escala cheia ele encosta na borda
+    do quadrado — e o traço é engrossado antes da redução para não sumir nos
+    16px da aba do navegador.
+
+    A cor está fixa aqui porque um SVG servido como favicon não enxerga as
+    variáveis CSS do tema: ao trocar a paleta, este arquivo e a meta tag
+    theme-color do index.html mudam junto.
+  -->
+  <rect width="24" height="24" rx="6" fill="#2a78d6"/>
+  <g transform="translate(4.8 4.8) scale(0.6)">
+    <path
+      d="M12 3.5a8.5 8.5 0 1 0 0 17 8.5 8.5 0 0 0 0-17ZM16.6 7.4l-2.4 7.2-7.2 2.4 2.4-7.2 7.2-2.4Z"
+      fill="none"
+      stroke="#fff"
+      stroke-width="2.8"
+      stroke-linecap="round"
+      stroke-linejoin="round"
+    />
+  </g>
+</svg>
