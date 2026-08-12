@@ -72,6 +72,10 @@ export function DialogsProvider({ children }: { children: ReactNode }) {
           notifyError('Confira os campos destacados no formulário.')
           return
         }
+        if (err instanceof ApiError && err.isUnauthorized) {
+          notifyError('Publicar e editar vagas é restrito ao administrador do site.')
+          return
+        }
         notifyError(err instanceof ApiError ? err.message : 'Não foi possível salvar a vaga.')
       } finally {
         setSubmitting(false)
@@ -89,6 +93,10 @@ export function DialogsProvider({ children }: { children: ReactNode }) {
       notifySuccess('Vaga excluída.')
       setPendingDelete(null)
     } catch (err) {
+      if (err instanceof ApiError && err.isUnauthorized) {
+        notifyError('Excluir vagas é restrito ao administrador do site.')
+        return
+      }
       notifyError(err instanceof ApiError ? err.message : 'Não foi possível excluir a vaga.')
     } finally {
       setDeleting(false)

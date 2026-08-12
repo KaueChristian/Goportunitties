@@ -11,6 +11,10 @@ services:
       # Same origin in production — the binary serves the SPA too — so no
       # cross-origin request has to be allowed.
       CORS_ORIGINS: ''
+      # Required in production — the binary refuses to start without it. Set a
+      # real value before deploying, e.g. `openssl rand -hex 32`. Anyone with
+      # this key can create, edit and delete every opening.
+      ADMIN_KEY: ${ADMIN_KEY:?ADMIN_KEY must be set — see README}
     volumes:
       # The SQLite file outlives the container.
       - goportunitties-data:/data

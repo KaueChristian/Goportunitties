@@ -24,10 +24,21 @@ COPY --from=web /app/internal/web/dist ./internal/web/dist
 ARG VERSION=dev
 # CGO off: the SQLite driver is pure Go, so the result is a static binary that
 # runs on a distroless image with nothing else in it.
+#
+# Both binaries are built here — the api and the ingestion worker — because
+# the runtime stage below copies both. A previous version of this file copied
+# /goportunitties-worker without ever building it, which only failed once
+# BuildKit actually tried to resolve that COPY: "failed to calculate checksum
+# of ref ...: /goportunitties-worker: not found".
 RUN CGO_ENABLED=0 GOOS=linux go build \
     -trimpath \
     -ldflags "-s -w -X main.version=${VERSION}" \
     -o /goportunitties ./cmd/api
+
+RUN CGO_ENABLED=0 GOOS=linux go build \
+    -trimpath \
+    -ldflags "-s -w -X main.version=${VERSION}" \
+    -o /goportunitties-worker ./cmd/worker
 
 # The database directory has to exist and belong to the runtime user, and there
 # is no shell in the final image to create it there.

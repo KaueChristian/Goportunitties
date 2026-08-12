@@ -24,6 +24,22 @@ import (
 // version is stamped at build time with -ldflags "-X main.version=...".
 var version = "dev"
 
+// validateForProduction catches configuration that is fine to leave unset in
+// development but must never reach a deployment silently.
+//
+// An unset admin key in development just means the write gate is a no-op (see
+// middleware.RequireAdminKey) — convenient for `go run`. The same absence in
+// production would mean every write endpoint is open to anyone, and refusing
+// to start is what turns that into a failure at boot instead of a silent gap
+// discovered later.
+func validateForProduction(settings config.Settings) error {
+	if settings.IsProduction() && settings.AdminKey == "" {
+		return fmt.Errorf("ADMIN_KEY must be set in production — it is what keeps " +
+			"the write endpoints (create, replace, patch, delete) from being open to anyone")
+	}
+	return nil
+}
+
 func main() {
 	if err := run(); err != nil {
 		slog.Error("server exited with error", slog.String("error", err.Error()))
@@ -37,6 +53,10 @@ func main() {
 func run() error {
 	settings := config.Load()
 	log := logger.New(settings.Env)
+
+	if err := validateForProduction(settings); err != nil {
+		return err
+	}
 
 	db, err := database.Open(settings.DBPath, !settings.IsProduction())
 	if err != nil {

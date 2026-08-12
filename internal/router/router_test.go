@@ -1,6 +1,7 @@
 package router_test
 
 import (
+	"context"
 	"encoding/json"
 	"io"
 	"log/slog"
@@ -28,8 +29,14 @@ func TestMain(m *testing.M) {
 }
 
 // newAPI builds the real engine over a throwaway database: same middleware,
-// same routes, same wiring as production.
+// same routes, same wiring as production. No admin key — the default the rest
+// of this file's tests want, matching an unconfigured development instance.
 func newAPI(t *testing.T, spa *fstest.MapFS) (*gin.Engine, *gorm.DB) {
+	t.Helper()
+	return newAPIWithAdminKey(t, spa, "")
+}
+
+func newAPIWithAdminKey(t *testing.T, spa *fstest.MapFS, adminKey string) (*gin.Engine, *gorm.DB) {
 	t.Helper()
 
 	db, err := database.Open(filepath.Join(t.TempDir(), "test.db"), false)
@@ -44,6 +51,7 @@ func newAPI(t *testing.T, spa *fstest.MapFS) (*gin.Engine, *gorm.DB) {
 			CORSOrigins:     []string{"http://localhost:5173"},
 			DefaultPageSize: 12,
 			MaxPageSize:     100,
+			AdminKey:        adminKey,
 		},
 		Log:     slog.New(slog.NewTextHandler(io.Discard, nil)),
 		DB:      db,
@@ -66,6 +74,31 @@ func request(t *testing.T, engine *gin.Engine, method, target, body string) (*ht
 	}
 	req := httptest.NewRequest(method, target, reader)
 	req.Header.Set("Content-Type", "application/json")
+
+	rec := httptest.NewRecorder()
+	engine.ServeHTTP(rec, req)
+
+	response := dto.APIResponse{}
+	if rec.Body.Len() > 0 {
+		_ = json.Unmarshal(rec.Body.Bytes(), &response)
+	}
+	return rec, response
+}
+
+func requestWithAdminKey(
+	t *testing.T, engine *gin.Engine, method, target, body, key string,
+) (*httptest.ResponseRecorder, dto.APIResponse) {
+	t.Helper()
+
+	var reader io.Reader
+	if body != "" {
+		reader = strings.NewReader(body)
+	}
+	req := httptest.NewRequest(method, target, reader)
+	req.Header.Set("Content-Type", "application/json")
+	if key != "" {
+		req.Header.Set(middleware.HeaderAdminKey, key)
+	}
 
 	rec := httptest.NewRecorder()
 	engine.ServeHTTP(rec, req)
@@ -340,5 +373,107 @@ func TestSPAFallback(t *testing.T) {
 	rec, response := request(t, engine, http.MethodGet, "/api/v1/nope", "")
 	if rec.Code != http.StatusNotFound || response.Error == "" {
 		t.Fatalf("api 404 turned into HTML: status %d body %s", rec.Code, rec.Body)
+	}
+}
+
+// Without an admin key configured, every write stays open — this is the
+// development experience `go run ./cmd/api` gives with zero setup.
+func TestWritesAreOpenWhenNoAdminKeyIsConfigured(t *testing.T) {
+	engine, _ := newAPI(t, nil) // no key
+
+	rec, _ := request(t, engine, http.MethodPost, "/api/v1/openings", newOpening)
+	if rec.Code != http.StatusCreated {
+		t.Fatalf("create: status %d, want 201 (%s)", rec.Code, rec.Body)
+	}
+}
+
+// This is the property the admin key exists for: once configured, a write
+// from a caller with no key — or the wrong one — must never reach the
+// database, whether that's a stranger's spam or an attempt to wipe out the
+// openings ingestion brought in.
+func TestWritesRequireTheAdminKeyOnceOneIsConfigured(t *testing.T) {
+	engine, db := newAPIWithAdminKey(t, nil, "s3cr3t")
+
+	tests := []struct {
+		name string
+		key  string
+	}{
+		{"no key sent", ""},
+		{"wrong key", "not-it"},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			rec, response := requestWithAdminKey(t, engine, http.MethodPost, "/api/v1/openings", newOpening, tt.key)
+
+			if rec.Code != http.StatusUnauthorized {
+				t.Fatalf("status = %d, want 401 (%s)", rec.Code, rec.Body)
+			}
+			if response.Error == "" {
+				t.Fatal("a 401 should explain itself")
+			}
+		})
+	}
+
+	_, total, err := repository.NewOpeningRepository(db).List(context.Background(), repository.Filter{})
+	if err != nil {
+		t.Fatalf("List: %v", err)
+	}
+	if total != 0 {
+		t.Fatalf("%d rows were written despite the rejected requests", total)
+	}
+}
+
+// The correct key is what lets the operator — and only the operator — write.
+func TestTheCorrectAdminKeyIsAccepted(t *testing.T) {
+	engine, _ := newAPIWithAdminKey(t, nil, "s3cr3t")
+
+	rec, _ := requestWithAdminKey(t, engine, http.MethodPost, "/api/v1/openings", newOpening, "s3cr3t")
+	if rec.Code != http.StatusCreated {
+		t.Fatalf("create with the right key: status %d, want 201 (%s)", rec.Code, rec.Body)
+	}
+}
+
+// Reading was never meant to be gated: a public board nobody can browse
+// without a key is not a public board.
+func TestReadsStayPublicRegardlessOfTheAdminKey(t *testing.T) {
+	engine, _ := newAPIWithAdminKey(t, nil, "s3cr3t")
+
+	for _, path := range []string{
+		"/api/v1/openings", "/api/v1/openings/facets",
+		"/api/v1/openings/stats", "/api/v1/openings/suggestions",
+	} {
+		if rec, _ := request(t, engine, http.MethodGet, path, ""); rec.Code != http.StatusOK {
+			t.Fatalf("%s: status %d, want 200 with no key sent", path, rec.Code)
+		}
+	}
+}
+
+// PUT, PATCH and DELETE on an existing opening are gated the same way POST is.
+func TestReplacePatchAndDeleteAllRequireTheAdminKey(t *testing.T) {
+	engine, _ := newAPIWithAdminKey(t, nil, "s3cr3t")
+
+	created, _ := requestWithAdminKey(t, engine, http.MethodPost, "/api/v1/openings", newOpening, "s3cr3t")
+	if created.Code != http.StatusCreated {
+		t.Fatalf("seeding: status %d (%s)", created.Code, created.Body)
+	}
+	location := created.Header().Get("Location")
+
+	tests := []struct {
+		method string
+		body   string
+	}{
+		{http.MethodPut, newOpening},
+		{http.MethodPatch, `{"salary":1}`},
+		{http.MethodDelete, ""},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.method, func(t *testing.T) {
+			rec, _ := request(t, engine, tt.method, location, tt.body) // no key
+			if rec.Code != http.StatusUnauthorized {
+				t.Fatalf("%s with no key: status %d, want 401", tt.method, rec.Code)
+			}
+		})
 	}
 }

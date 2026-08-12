@@ -1,3 +1,4 @@
+import { getAdminKey } from './adminKey'
 import type { ApiResponse, Pagination } from '../types/opening'
 
 /**
@@ -29,7 +30,15 @@ export class ApiError extends Error {
   get isValidationError(): boolean {
     return this.status === 422
   }
+
+  /** True when the write was blocked for missing or wrong admin credentials. */
+  get isUnauthorized(): boolean {
+    return this.status === 401
+  }
 }
+
+/** The header the admin key travels in — mirrors middleware.HeaderAdminKey. */
+const ADMIN_KEY_HEADER = 'X-Admin-Key'
 
 /** A response body split into its payload and, for collections, its window. */
 export interface ApiResult<T> {
@@ -89,17 +98,29 @@ async function request<T>(path: string, init: RequestInit = {}): Promise<ApiResu
   return { data: body?.data as T, meta: body?.meta }
 }
 
+/**
+ * Every write carries whatever admin key is stored locally. The server ignores
+ * the header entirely when it has no key configured (development), and
+ * rejects the request with a 401 when the header is missing or wrong — the
+ * empty string sent by a browser with no key set behaves exactly like the
+ * header being absent.
+ */
+function adminHeaders(): HeadersInit {
+  const key = getAdminKey()
+  return key ? { [ADMIN_KEY_HEADER]: key } : {}
+}
+
 export const api = {
   get: <T>(path: string) => request<T>(path, { method: 'GET' }),
 
   post: <T>(path: string, payload: unknown) =>
-    request<T>(path, { method: 'POST', body: JSON.stringify(payload) }),
+    request<T>(path, { method: 'POST', body: JSON.stringify(payload), headers: adminHeaders() }),
 
   put: <T>(path: string, payload: unknown) =>
-    request<T>(path, { method: 'PUT', body: JSON.stringify(payload) }),
+    request<T>(path, { method: 'PUT', body: JSON.stringify(payload), headers: adminHeaders() }),
 
   patch: <T>(path: string, payload: unknown) =>
-    request<T>(path, { method: 'PATCH', body: JSON.stringify(payload) }),
+    request<T>(path, { method: 'PATCH', body: JSON.stringify(payload), headers: adminHeaders() }),
 
-  delete: <T>(path: string) => request<T>(path, { method: 'DELETE' }),
+  delete: <T>(path: string) => request<T>(path, { method: 'DELETE', headers: adminHeaders() }),
 }
