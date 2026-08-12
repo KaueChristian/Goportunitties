@@ -26,7 +26,7 @@ services:
     entrypoint: ['/goportunitties-worker']
     environment:
       APP_ENV: production
-      INGESTION_SOURCES: ${INGESTION_SOURCES:-remoteok,remotive}
+      INGESTION_SOURCES: ${INGESTION_SOURCES:-backend-br,frontend-br,remotive}
       INGESTION_INTERVAL: ${INGESTION_INTERVAL:-6h}
       INGESTION_MAX_PER_SOURCE: ${INGESTION_MAX_PER_SOURCE:-100}
     volumes:

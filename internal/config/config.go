@@ -61,7 +61,12 @@ func Load() Settings {
 		Ingestion: IngestionSettings{
 			// The Brazilian boards come first: they are the ones publishing
 			// openings in this project's own market.
-			Sources: splitAndTrim(getEnv("INGESTION_SOURCES", "backend-br,frontend-br,remoteok,remotive")),
+			//
+			// RemoteOK is deliberately absent. Its free feed measured five
+			// usable postings in a hundred, the rest being retail work and
+			// error pages served as if they were jobs. The adapter is still
+			// registered, so adding "remoteok" here turns it back on.
+			Sources: splitAndTrim(getEnv("INGESTION_SOURCES", "backend-br,frontend-br,remotive")),
 			// Zero is meaningful here — "run once and exit" — so it cannot use
 			// getDuration, which treats zero as "unset, take the default".
 			Interval:     getIntervalOrOnce("INGESTION_INTERVAL", 6*time.Hour),

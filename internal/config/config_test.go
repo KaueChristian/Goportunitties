@@ -27,6 +27,34 @@ func TestLoadDefaults(t *testing.T) {
 	}
 }
 
+// RemoteOK is implemented and tested but stays out of the default set: its free
+// feed measured five usable postings in a hundred. Turning it back on should be
+// a decision someone takes on purpose, not one that slips in.
+func TestRemoteOKIsNotIngestedByDefault(t *testing.T) {
+	settings := config.Load()
+
+	for _, source := range settings.Ingestion.Sources {
+		if source == "remoteok" {
+			t.Fatalf("sources = %v, want remoteok left out", settings.Ingestion.Sources)
+		}
+	}
+
+	if len(settings.Ingestion.Sources) == 0 {
+		t.Fatal("the default set must still name some source")
+	}
+}
+
+// The flag exists so the source can be turned back on without a code change.
+func TestRemoteOKCanBeTurnedBackOn(t *testing.T) {
+	t.Setenv("INGESTION_SOURCES", "remoteok")
+
+	settings := config.Load()
+
+	if len(settings.Ingestion.Sources) != 1 || settings.Ingestion.Sources[0] != "remoteok" {
+		t.Fatalf("sources = %v, want the configured one to win", settings.Ingestion.Sources)
+	}
+}
+
 func TestLoadReadsTheEnvironment(t *testing.T) {
 	t.Setenv("APP_ENV", "production")
 	t.Setenv("PORT", "9090")

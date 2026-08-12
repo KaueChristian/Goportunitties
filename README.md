@@ -153,7 +153,7 @@ Todas têm valor padrão — o projeto roda sem configurar nenhuma.
 | `SHUTDOWN_TIMEOUT` | `10s` | Tempo dado às requisições em andamento no encerramento |
 | `DEFAULT_PAGE_SIZE` | `12` | Tamanho de página quando o cliente não pede outro |
 | `MAX_PAGE_SIZE` | `100` | Teto do tamanho de página |
-| `INGESTION_SOURCES` | `backend-br,frontend-br,remoteok,remotive` | Portais a ler, separados por vírgula |
+| `INGESTION_SOURCES` | `backend-br,frontend-br,remotive` | Portais a ler, separados por vírgula |
 | `INGESTION_INTERVAL` | `6h` | Intervalo entre passadas; `0` roda uma vez e sai |
 | `INGESTION_TIMEOUT` | `30s` | Tempo máximo por portal |
 | `INGESTION_MAX_PER_SOURCE` | `100` | Teto de vagas que um portal contribui por passada |
@@ -258,8 +258,8 @@ o orquestrador não conhece portal nenhum.
 |---|---|
 | `backend-br` | vagas brasileiras de back-end ([backend-br/vagas](https://github.com/backend-br/vagas)) |
 | `frontend-br` | vagas brasileiras de front-end ([frontendbr/vagas](https://github.com/frontendbr/vagas)) |
-| `remoteok` | vagas remotas internacionais |
 | `remotive` | vagas remotas internacionais |
+| `remoteok` | disponível, mas **desligado por padrão** — ver abaixo |
 
 Os dois primeiros são quadros da comunidade que rodam sobre **GitHub Issues**:
 uma issue é uma vaga. Isso dá um feed público, gratuito e sem chave de vagas
@@ -267,6 +267,12 @@ brasileiras reais — que os portais brasileiros tradicionais (Gupy, Vagas.com,
 Catho) não oferecem. O custo é que o título é prosa, não campos: o adaptador lê
 uma convenção humana (`[Modalidade - Cidade] Cargo - Empresa`) e **descarta** a
 vaga cujo empregador não consegue identificar, em vez de gravar um palpite.
+
+O `remoteok` continua implementado e testado, mas fora do conjunto padrão: o
+feed gratuito dele mediu cinco vagas de tecnologia em cem entradas, sendo o
+resto trabalho de varejo e páginas de erro servidas como se fossem vagas
+("Page Not Found", "YOUR JOB DESCRIPTION HERE"). Para religá-lo, basta
+adicioná-lo a `INGESTION_SOURCES`.
 
 Os portais são consultados em paralelo — é I/O contra serviços independentes —
 mas a escrita passa por um funil único, porque o SQLite serializa escritores de
@@ -294,13 +300,6 @@ por isso ficou de fora daqui.
 ## Próximo passo
 
 Três pontos, em ordem de impacto.
-
-**O RemoteOK entrega quase nada de aproveitável.** O feed gratuito deles é
-majoritariamente ruído — de 100 entradas, 5 eram vagas de tecnologia, e o resto
-ia de trabalho em armazém a páginas de erro servidas como se fossem vagas
-("Page Not Found", "YOUR JOB DESCRIPTION HERE"). O filtro por área resolve o
-sintoma, mas vale considerar tirar a fonte: ela custa uma requisição por
-passada para trazer cinco vagas.
 
 **Vagas expiradas não saem do índice.** O upsert atualiza o que a fonte ainda
 publica, mas uma vaga que sai do ar simplesmente para de ser atualizada e fica
