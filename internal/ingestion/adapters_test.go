@@ -228,7 +228,7 @@ func TestClientStopsWhenTheContextIsCancelled(t *testing.T) {
 }
 
 func TestBuildResolvesConfiguredSlugs(t *testing.T) {
-	sources, err := Build(newTestClient(), 10, []string{"remoteok", " REMOTIVE ", "remoteok", ""})
+	sources, err := Build(newTestClient(), Options{MaxPerSource: 10}, []string{"remoteok", " REMOTIVE ", "remoteok", ""})
 	if err != nil {
 		t.Fatalf("Build: %v", err)
 	}
@@ -244,7 +244,7 @@ func TestBuildResolvesConfiguredSlugs(t *testing.T) {
 
 // A typo must not look like a board that returned nothing.
 func TestBuildRejectsAnUnknownSlug(t *testing.T) {
-	_, err := Build(newTestClient(), 10, []string{"remoteok", "linkedin"})
+	_, err := Build(newTestClient(), Options{MaxPerSource: 10}, []string{"remoteok", "linkedin"})
 
 	if err == nil {
 		t.Fatal("an unknown source should be an error")

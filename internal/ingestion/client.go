@@ -45,12 +45,21 @@ func NewClient(timeout time.Duration, userAgent string) *Client {
 
 // GetJSON fetches url and decodes the body into target.
 func (c *Client) GetJSON(ctx context.Context, url string, target any) error {
+	return c.GetJSONWith(ctx, url, nil, target)
+}
+
+// GetJSONWith is GetJSON with extra headers — an API key or a different Accept,
+// which some boards require and others reject.
+func (c *Client) GetJSONWith(ctx context.Context, url string, headers map[string]string, target any) error {
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, url, nil)
 	if err != nil {
 		return fmt.Errorf("building the request for %s: %w", url, err)
 	}
 	req.Header.Set("Accept", "application/json")
 	req.Header.Set("User-Agent", c.userAgent)
+	for name, value := range headers {
+		req.Header.Set(name, value)
+	}
 
 	res, err := c.http.Do(req)
 	if err != nil {

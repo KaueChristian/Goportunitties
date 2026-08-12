@@ -22,6 +22,8 @@ describe('sourceLabel', () => {
     ['manual', 'Publicada aqui'],
     ['remoteok', 'RemoteOK'],
     ['remotive', 'Remotive'],
+    ['backend-br', 'Vagas Back-end BR'],
+    ['frontend-br', 'Vagas Front-end BR'],
   ])('spells %o as %o', (slug, expected) => {
     expect(sourceLabel(slug)).toBe(expected)
   })

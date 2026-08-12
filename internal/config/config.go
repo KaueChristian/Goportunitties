@@ -33,6 +33,9 @@ type IngestionSettings struct {
 	MaxPerSource int
 	// UserAgent identifies this project to the boards it reads.
 	UserAgent string
+	// GitHubToken raises the rate limit on the community boards that run on
+	// GitHub Issues. Optional: they are readable without it.
+	GitHubToken string
 }
 
 // IsProduction reports whether the app should behave as a deployed instance
@@ -56,13 +59,16 @@ func Load() Settings {
 		DefaultPageSize: getInt("DEFAULT_PAGE_SIZE", 12),
 		MaxPageSize:     getInt("MAX_PAGE_SIZE", 100),
 		Ingestion: IngestionSettings{
-			Sources: splitAndTrim(getEnv("INGESTION_SOURCES", "remoteok,remotive")),
+			// The Brazilian boards come first: they are the ones publishing
+			// openings in this project's own market.
+			Sources: splitAndTrim(getEnv("INGESTION_SOURCES", "backend-br,frontend-br,remoteok,remotive")),
 			// Zero is meaningful here — "run once and exit" — so it cannot use
 			// getDuration, which treats zero as "unset, take the default".
 			Interval:     getIntervalOrOnce("INGESTION_INTERVAL", 6*time.Hour),
 			Timeout:      getDuration("INGESTION_TIMEOUT", 30*time.Second),
 			MaxPerSource: getInt("INGESTION_MAX_PER_SOURCE", 100),
 			UserAgent:    getEnv("INGESTION_USER_AGENT", ""),
+			GitHubToken:  getEnv("INGESTION_GITHUB_TOKEN", ""),
 		},
 	}
 }

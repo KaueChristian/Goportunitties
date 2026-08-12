@@ -153,11 +153,12 @@ Todas têm valor padrão — o projeto roda sem configurar nenhuma.
 | `SHUTDOWN_TIMEOUT` | `10s` | Tempo dado às requisições em andamento no encerramento |
 | `DEFAULT_PAGE_SIZE` | `12` | Tamanho de página quando o cliente não pede outro |
 | `MAX_PAGE_SIZE` | `100` | Teto do tamanho de página |
-| `INGESTION_SOURCES` | `remoteok,remotive` | Portais a ler, separados por vírgula |
+| `INGESTION_SOURCES` | `backend-br,frontend-br,remoteok,remotive` | Portais a ler, separados por vírgula |
 | `INGESTION_INTERVAL` | `6h` | Intervalo entre passadas; `0` roda uma vez e sai |
 | `INGESTION_TIMEOUT` | `30s` | Tempo máximo por portal |
 | `INGESTION_MAX_PER_SOURCE` | `100` | Teto de vagas que um portal contribui por passada |
 | `INGESTION_USER_AGENT` | identificação do projeto | User-Agent enviado aos portais |
+| `INGESTION_GITHUB_TOKEN` | vazio | Opcional; eleva o limite do GitHub de 60 para 5000 req/h |
 
 No frontend, `VITE_API_URL` sobrescreve a URL da API caso o front seja
 publicado separadamente do backend.
@@ -253,6 +254,20 @@ O worker lê portais públicos e alimenta o índice sozinho. Cada portal é um
 arquivo em `internal/ingestion/` que implementa uma interface de três métodos;
 o orquestrador não conhece portal nenhum.
 
+| Portal | O que traz |
+|---|---|
+| `backend-br` | vagas brasileiras de back-end ([backend-br/vagas](https://github.com/backend-br/vagas)) |
+| `frontend-br` | vagas brasileiras de front-end ([frontendbr/vagas](https://github.com/frontendbr/vagas)) |
+| `remoteok` | vagas remotas internacionais |
+| `remotive` | vagas remotas internacionais |
+
+Os dois primeiros são quadros da comunidade que rodam sobre **GitHub Issues**:
+uma issue é uma vaga. Isso dá um feed público, gratuito e sem chave de vagas
+brasileiras reais — que os portais brasileiros tradicionais (Gupy, Vagas.com,
+Catho) não oferecem. O custo é que o título é prosa, não campos: o adaptador lê
+uma convenção humana (`[Modalidade - Cidade] Cargo - Empresa`) e **descarta** a
+vaga cujo empregador não consegue identificar, em vez de gravar um palpite.
+
 Os portais são consultados em paralelo — é I/O contra serviços independentes —
 mas a escrita passa por um funil único, porque o SQLite serializa escritores de
 qualquer forma e um segundo só trocaria paralelismo por disputa de lock. Cada
@@ -278,8 +293,18 @@ por isso ficou de fora daqui.
 
 ## Próximo passo
 
-Com o índice recebendo milhares de vagas, dois pontos passam a pesar: a busca
-usa `LIKE '%termo%'`, que não usa índice, e a faceta de localidade lista todos
-os valores distintos — o que era razoável num índice curado e deixa de ser com
-dados importados. FTS5 resolve o primeiro; limitar a faceta às localidades mais
-frequentes resolve o segundo.
+Três pontos, em ordem de impacto.
+
+**O RemoteOK publica vagas que não são de tecnologia.** O feed deles inclui
+varejo e manufatura ("Post Office Manager", "labourer general manufacturing"),
+e hoje tudo isso entra num índice que se anuncia como de tecnologia. A ingestão
+precisa de um filtro por área — por palavra-chave no cargo, ou pelas tags que o
+próprio portal já publica.
+
+**A busca não escala.** `LIKE '%termo%'` não usa índice: é varredura completa.
+Com centenas de vagas é irrelevante, com dezenas de milhares vira o gargalo.
+FTS5 resolve.
+
+**A faceta de localidade explode.** Ela lista todos os valores distintos, o que
+era razoável num índice curado e deixa de ser com dados importados. Limitar às
+localidades mais frequentes resolve.

@@ -45,7 +45,10 @@ func run() error {
 	}()
 
 	client := ingestion.NewClient(settings.Ingestion.Timeout, settings.Ingestion.UserAgent)
-	sources, err := ingestion.Build(client, settings.Ingestion.MaxPerSource, settings.Ingestion.Sources)
+	sources, err := ingestion.Build(client, ingestion.Options{
+		MaxPerSource: settings.Ingestion.MaxPerSource,
+		GitHubToken:  settings.Ingestion.GitHubToken,
+	}, settings.Ingestion.Sources)
 	if err != nil {
 		return err
 	}

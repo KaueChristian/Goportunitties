@@ -3,6 +3,8 @@ import type { Opening } from '../../types/opening'
 /** How the interface spells each source out. Mirrors the slugs in internal/ingestion. */
 const SOURCE_LABELS: Record<string, string> = {
   manual: 'Publicada aqui',
+  'backend-br': 'Vagas Back-end BR',
+  'frontend-br': 'Vagas Front-end BR',
   remoteok: 'RemoteOK',
   remotive: 'Remotive',
 }
