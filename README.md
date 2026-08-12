@@ -295,11 +295,17 @@ por isso ficou de fora daqui.
 
 Três pontos, em ordem de impacto.
 
-**O RemoteOK publica vagas que não são de tecnologia.** O feed deles inclui
-varejo e manufatura ("Post Office Manager", "labourer general manufacturing"),
-e hoje tudo isso entra num índice que se anuncia como de tecnologia. A ingestão
-precisa de um filtro por área — por palavra-chave no cargo, ou pelas tags que o
-próprio portal já publica.
+**O RemoteOK entrega quase nada de aproveitável.** O feed gratuito deles é
+majoritariamente ruído — de 100 entradas, 5 eram vagas de tecnologia, e o resto
+ia de trabalho em armazém a páginas de erro servidas como se fossem vagas
+("Page Not Found", "YOUR JOB DESCRIPTION HERE"). O filtro por área resolve o
+sintoma, mas vale considerar tirar a fonte: ela custa uma requisição por
+passada para trazer cinco vagas.
+
+**Vagas expiradas não saem do índice.** O upsert atualiza o que a fonte ainda
+publica, mas uma vaga que sai do ar simplesmente para de ser atualizada e fica
+no índice para sempre. Marcar como encerrada o que não aparece há N passadas
+resolve.
 
 **A busca não escala.** `LIKE '%termo%'` não usa índice: é varredura completa.
 Com centenas de vagas é irrelevante, com dezenas de milhares vira o gargalo.

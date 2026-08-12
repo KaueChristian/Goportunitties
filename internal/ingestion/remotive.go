@@ -71,6 +71,14 @@ func (s *Remotive) Fetch(ctx context.Context) ([]model.Opening, error) {
 			continue
 		}
 
+		// This board mixes technology with everything else — retail, logistics
+		// and, in one snapshot, a cake recipe. The filter is applied here and
+		// not to the community boards, whose whole repository is technical: a
+		// posting there with an unusual title should not be dropped.
+		if !looksTechnical(role) {
+			continue
+		}
+
 		openings = append(openings, model.Opening{
 			Role:       role,
 			Company:    company,
