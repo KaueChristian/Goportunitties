@@ -14,6 +14,7 @@ function mockFetch(status: number, body: unknown) {
 
 afterEach(() => {
   vi.unstubAllGlobals()
+  localStorage.clear()
 })
 
 describe('toQueryString', () => {
@@ -97,6 +98,32 @@ describe('api', () => {
 
     expect(error.isNetworkError).toBe(true)
     expect(error.message).toContain('servidor Go')
+  })
+
+  it('reports a blocked write distinctly from other failures', async () => {
+    mockFetch(401, { message: 'operation failed', error: 'chave de administrador ausente ou inválida' })
+
+    const error = (await api.post('/openings', {}).catch((err: unknown) => err)) as ApiError
+
+    expect(error.isUnauthorized).toBe(true)
+    expect(error.isValidationError).toBe(false)
+  })
+
+  it('attaches the stored admin key to a write', async () => {
+    localStorage.setItem('goportunitties:admin-key', 's3cr3t')
+    const fetchMock = mockFetch(201, { message: 'ok', data: {} })
+
+    await api.post('/openings', { role: 'SRE' })
+
+    expect(fetchMock.mock.calls[0][1].headers['X-Admin-Key']).toBe('s3cr3t')
+  })
+
+  it('sends no admin key header on a write when none is stored', async () => {
+    const fetchMock = mockFetch(201, { message: 'ok', data: {} })
+
+    await api.post('/openings', { role: 'SRE' })
+
+    expect(fetchMock.mock.calls[0][1].headers['X-Admin-Key']).toBeUndefined()
   })
 
   it('survives an error response that is not JSON', async () => {

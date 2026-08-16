@@ -7,6 +7,7 @@ import (
 	"log/slog"
 	"net/http"
 	"strconv"
+	"strings"
 
 	"github.com/KaueChristian/Goportunitties/internal/dto"
 	"github.com/KaueChristian/Goportunitties/internal/service"
@@ -42,12 +43,27 @@ func parseID(ctx *gin.Context) (uint, bool) {
 	return uint(id), true
 }
 
+// maxBodyBytes caps a request body an opening's payload can ever need. Without
+// this, an authenticated write can hand json.Decoder an arbitrarily large body
+// and force the process to buffer all of it before validation gets a chance
+// to reject it.
+const maxBodyBytes = 1 << 20 // 1 MiB
+
 // bind decodes and validates a request body, replying on failure. It separates
 // "this isn't valid JSON" (400) from "these fields are wrong" (422).
 func bind(ctx *gin.Context, target any) bool {
+	ctx.Request.Body = http.MaxBytesReader(ctx.Writer, ctx.Request.Body, maxBodyBytes)
+
 	if err := ctx.ShouldBindJSON(target); err != nil {
 		if fields := dto.FieldErrors(err); fields != nil {
 			dto.SendValidationError(ctx, "há campos inválidos na requisição", fields)
+			return false
+		}
+		// http.MaxBytesReader reports an oversized body as a plain error, not a
+		// validator one — it needs its own status rather than falling into the
+		// generic 400 below.
+		if strings.Contains(err.Error(), "http: request body too large") {
+			dto.SendError(ctx, http.StatusRequestEntityTooLarge, "corpo da requisição excede o tamanho máximo permitido")
 			return false
 		}
 		dto.SendError(ctx, http.StatusBadRequest, "corpo da requisição inválido")

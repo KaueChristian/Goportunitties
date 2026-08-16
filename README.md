@@ -142,7 +142,8 @@ make test
 
 ## Variáveis de ambiente
 
-Todas têm valor padrão — o projeto roda sem configurar nenhuma.
+Todas têm valor padrão — o projeto roda sem configurar nenhuma, **exceto
+`ADMIN_KEY` em produção**, que é obrigatória.
 
 | Variável | Padrão | Descrição |
 |---|---|---|
@@ -150,6 +151,7 @@ Todas têm valor padrão — o projeto roda sem configurar nenhuma.
 | `PORT` | `8080` | Porta da API |
 | `DB_PATH` | `./data/main.db` | Caminho do arquivo SQLite |
 | `CORS_ORIGINS` | `http://localhost:5173,http://127.0.0.1:5173` | Origens autorizadas (separadas por vírgula) |
+| `ADMIN_KEY` | vazio | Chave que libera criar/editar/excluir vagas — ver abaixo |
 | `SHUTDOWN_TIMEOUT` | `10s` | Tempo dado às requisições em andamento no encerramento |
 | `DEFAULT_PAGE_SIZE` | `12` | Tamanho de página quando o cliente não pede outro |
 | `MAX_PAGE_SIZE` | `100` | Teto do tamanho de página |
@@ -172,14 +174,31 @@ Base: `/api/v1`
 | `GET` | `/openings` | Lista as vagas — filtrada, ordenada e paginada |
 | `GET` | `/openings/facets` | Contagem de cada opção de filtro para a consulta atual |
 | `GET` | `/openings/stats` | Agregados do índice inteiro (painel) |
-| `POST` | `/openings` | Cria uma vaga — responde **201** com o header `Location` |
+| `POST` 🔒 | `/openings` | Cria uma vaga — responde **201** com o header `Location` |
 | `GET` | `/openings/:id` | Detalha uma vaga |
-| `PUT` | `/openings/:id` | Substitui a vaga inteira (todos os campos obrigatórios) |
-| `PATCH` | `/openings/:id` | Atualiza só os campos enviados |
-| `DELETE` | `/openings/:id` | Remove uma vaga (soft delete) |
+| `PUT` 🔒 | `/openings/:id` | Substitui a vaga inteira (todos os campos obrigatórios) |
+| `PATCH` 🔒 | `/openings/:id` | Atualiza só os campos enviados |
+| `DELETE` 🔒 | `/openings/:id` | Remove uma vaga (soft delete) |
 
 Fora do versionamento: `GET /healthz` (o processo está vivo) e `GET /readyz`
 (o banco responde).
+
+### Rotas de escrita (🔒)
+
+Toda leitura é pública; toda escrita exige o header `X-Admin-Key` batendo com
+`ADMIN_KEY`. Sem isso, qualquer visitante do site conseguiria criar vagas
+falsas, editar ou apagar as reais que a ingestão traz — não é hipotético, é o
+primeiro teste que qualquer pessoa faz ao abrir um CRUD público.
+
+Em desenvolvimento, sem `ADMIN_KEY` configurada, a trava vira um no-op — é o
+que mantém `go run ./cmd/api` funcionando sem configuração nenhuma. Em
+produção (`APP_ENV=production`), o binário **recusa subir** sem a variável
+definida — a ausência falha alto, no boot, em vez de silenciosamente deixar
+tudo aberto.
+
+Para escrever pelo navegador como administrador, defina a chave uma vez no
+console (`localStorage.setItem('goportunitties:admin-key', 'a-mesma-chave-do-servidor')`)
+— não existe tela de login, o projeto tem um operador, não usuários.
 
 ### Parâmetros da listagem
 
@@ -247,6 +266,14 @@ servidor —, ordenação, painel de detalhe, formulário com validação espelh
 do backend (e exibindo os erros que só o servidor consegue julgar), confirmação
 de exclusão, estados de carregamento e vazio, notificações, tema claro/escuro e
 layout responsivo.
+
+| Início | Vagas |
+|---|---|
+| ![Tela inicial com busca e resumo do índice](docs/screenshots/home.png) | ![Listagem de vagas com filtros por modalidade, salário e localidade](docs/screenshots/vagas.png) |
+
+| Painel |
+|---|
+| ![Painel com métricas, publicações por mês e atividade recente](docs/screenshots/painel.png) |
 
 ## Ingestão
 

@@ -51,7 +51,7 @@ func New(deps Deps) *gin.Engine {
 	)
 	health := handler.NewHealthHandler(deps.DB, deps.Version)
 
-	registerRoutes(engine, openings, health)
+	registerRoutes(engine, openings, health, deps.Settings.AdminKey)
 	registerSPA(engine, deps.SPA)
 
 	return engine

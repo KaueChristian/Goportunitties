@@ -18,6 +18,17 @@ type Settings struct {
 	DefaultPageSize int
 	MaxPageSize     int
 	Ingestion       IngestionSettings
+
+	// AdminKey gates every write endpoint (create, replace, patch, delete)
+	// behind a shared secret sent as the X-Admin-Key header. Listing stays
+	// public regardless — this only stops a visitor from creating, editing or
+	// deleting openings, including the ones ingestion brought in.
+	//
+	// Empty is a valid value in development: it makes the gate a no-op, so
+	// `go run ./cmd/api` keeps working with zero setup. cmd/api refuses to
+	// start in production without one, so an empty key never reaches a
+	// deployment silently.
+	AdminKey string
 }
 
 // IngestionSettings configures the worker. The API binary ignores all of it.
@@ -75,6 +86,7 @@ func Load() Settings {
 			UserAgent:    getEnv("INGESTION_USER_AGENT", ""),
 			GitHubToken:  getEnv("INGESTION_GITHUB_TOKEN", ""),
 		},
+		AdminKey: getEnv("ADMIN_KEY", ""),
 	}
 }
 

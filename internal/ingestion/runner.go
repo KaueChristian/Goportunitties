@@ -2,6 +2,7 @@ package ingestion
 
 import (
 	"context"
+	"fmt"
 	"log/slog"
 	"sync"
 	"time"
@@ -68,7 +69,7 @@ func (r *Runner) Run(ctx context.Context) Summary {
 			defer cancel()
 
 			started := time.Now()
-			openings, err := source.Fetch(fetchCtx)
+			openings, err := safeFetch(fetchCtx, source)
 
 			r.log.LogAttrs(ctx, levelFor(err), "source fetched",
 				slog.String("source", source.Slug()),
@@ -95,6 +96,22 @@ func (r *Runner) Run(ctx context.Context) Summary {
 	}
 
 	return summary
+}
+
+// safeFetch isolates one adapter's Fetch from the rest of the run.
+//
+// A source is third-party code this process does not control, and an
+// unrecovered panic in any goroutine kills the entire process — not just the
+// goroutine it occurred in. Recovering here turns that into an ordinary
+// failed Result, giving a misbehaving adapter the same "skipped, others still
+// land" treatment an error already gets.
+func safeFetch(ctx context.Context, source Source) (openings []model.Opening, err error) {
+	defer func() {
+		if r := recover(); r != nil {
+			err = fmt.Errorf("source %s panicked: %v", source.Slug(), r)
+		}
+	}()
+	return source.Fetch(ctx)
 }
 
 // write persists one source's batch, stamping the slug on every opening so a
