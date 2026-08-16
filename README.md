@@ -267,6 +267,14 @@ do backend (e exibindo os erros que só o servidor consegue julgar), confirmaç�
 de exclusão, estados de carregamento e vazio, notificações, tema claro/escuro e
 layout responsivo.
 
+| Início | Vagas |
+|---|---|
+| ![Tela inicial com busca e resumo do índice](docs/screenshots/home.png) | ![Listagem de vagas com filtros por modalidade, salário e localidade](docs/screenshots/vagas.png) |
+
+| Painel |
+|---|
+| ![Painel com métricas, publicações por mês e atividade recente](docs/screenshots/painel.png) |
+
 ## Ingestão
 
 O worker lê portais públicos e alimenta o índice sozinho. Cada portal é um

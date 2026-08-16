@@ -271,15 +271,30 @@
   }
 
   .list .info {
+    /* Without min-width: 0, a flex item never shrinks below its content's
+       minimum size — and a long, nowrap location string is exactly that
+       content. Without overriding the base rule's flex-wrap: wrap, a column
+       container sizes each line to its widest item instead of the container's
+       own width. Either alone still let the location text overflow past its
+       260px basis and overlap .bottom; both together are what actually clips
+       it and lets the ellipsis on .location take effect. */
+    min-width: 0;
     flex: 0 1 260px;
     flex-direction: column;
+    flex-wrap: nowrap;
     gap: var(--space-2);
   }
 
   .list .bottom {
     flex: 0 0 auto;
     flex-direction: column;
-    align-items: flex-end;
+    /* flex-end only matches the two children's right edges. The price label
+       and the button are rarely the same width — a wide button under a short
+       "A combinar" (or a wide stated salary over a narrower button) leaves the
+       narrower one dangling off to one side instead of reading as one aligned
+       unit. Centering keeps them visually stacked regardless of which is
+       wider. */
+    align-items: center;
     gap: var(--space-2);
     margin-top: 0;
     padding-top: 0;
